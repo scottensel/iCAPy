@@ -36,7 +36,7 @@ def MyProx(x, Op, Adj_Op, evaluate_norm, param):
     # Iterative FISTA scheme
     for k in tqdm(range(max_iter), desc="Processing spatial step", ncols=80):
     # for k in range(max_iter):
-        if residual <= tol:
+        if residual < tol:
             break
 
         # Backward step
@@ -44,7 +44,7 @@ def MyProx(x, Op, Adj_Op, evaluate_norm, param):
 
         # Energy evaluation
         NRJ = lambda_val * evaluate_norm(x_out) + 0.5 * xp.linalg.norm(x - x_out) ** 2
-        residual = abs(NRJ - NRJ_old) / (NRJ + 1e-8)  # Avoid division by zero
+        residual = abs(NRJ - NRJ_old) / NRJ  # Avoid division by zero
         NRJ_old = NRJ
 
         # Update gradients
@@ -58,7 +58,7 @@ def MyProx(x, Op, Adj_Op, evaluate_norm, param):
         u_temp, v_temp, w_temp = u / proj_amplitude, v / proj_amplitude, w / proj_amplitude
 
         # FISTA Acceleration
-        t = (1 + xp.sqrt(4 * t_old ** 2)) / 2
+        t = (1 + xp.sqrt(1 + 4 * t_old ** 2)) / 2
         u = u_temp + (t_old - 1) / t * (u_temp - u_old)
         v = v_temp + (t_old - 1) / t * (v_temp - v_old)
         w = w_temp + (t_old - 1) / t * (w_temp - w_old)

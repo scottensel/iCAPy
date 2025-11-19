@@ -12,7 +12,7 @@ def evaluate_3D_TV(y, use_cuda=False):
 
     dx, dy, dz = gradient3D_full(y, use_cuda=use_cuda)
 
-    amplitude = xp.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
+    amplitude = xp.sqrt(abs(dx) ** 2 + abs(dy) ** 2 + abs(dz) ** 2)
 
     total_variation = xp.sum(amplitude)
 

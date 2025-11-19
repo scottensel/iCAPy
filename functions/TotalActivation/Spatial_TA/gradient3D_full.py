@@ -23,15 +23,21 @@ def gradient3D_full(V, wx=None, wy=None, wz=None, use_cuda=False):
 
     # Check if V is 3D or 4D and apply differences accordingly
     if V.ndim == 3:
-        # Apply differences and padding for a 3D volume
-        dx = xp.pad(V[1:, :, :] - V[:-1, :, :], ((1, 0), (0, 0), (0, 0)), mode='constant')
-        dy = xp.pad(V[:, 1:, :] - V[:, :-1, :], ((0, 0), (1, 0), (0, 0)), mode='constant')
-        dz = xp.pad(V[:, :, 1:] - V[:, :, :-1], ((0, 0), (0, 0), (1, 0)), mode='constant')
+        dx = xp.pad(V[1:, :, :] - V[:-1, :, :],
+                    ((0, 1), (0, 0), (0, 0)), mode='constant')
+        dy = xp.pad(V[:, 1:, :] - V[:, :-1, :],
+                    ((0, 0), (0, 1), (0, 0)), mode='constant')
+        dz = xp.pad(V[:, :, 1:] - V[:, :, :-1],
+                    ((0, 0), (0, 0), (0, 1)), mode='constant')
+
     elif V.ndim == 4:
-        # Apply differences and padding for a 4D volume along the first three dimensions
-        dx = xp.pad(V[1:, :, :, :] - V[:-1, :, :, :], ((1, 0), (0, 0), (0, 0), (0, 0)), mode='constant')
-        dy = xp.pad(V[:, 1:, :, :] - V[:, :-1, :, :], ((0, 0), (1, 0), (0, 0), (0, 0)), mode='constant')
-        dz = xp.pad(V[:, :, 1:, :] - V[:, :, :-1, :], ((0, 0), (0, 0), (1, 0), (0, 0)), mode='constant')
+        dx = xp.pad(V[1:, :, :, :] - V[:-1, :, :, :],
+                    ((0, 1), (0, 0), (0, 0), (0, 0)), mode='constant')
+        dy = xp.pad(V[:, 1:, :, :] - V[:, :-1, :, :],
+                    ((0, 0), (0, 1), (0, 0), (0, 0)), mode='constant')
+        dz = xp.pad(V[:, :, 1:, :] - V[:, :, :-1, :],
+                    ((0, 0), (0, 0), (0, 1), (0, 0)), mode='constant')
+
     else:
         raise ValueError("Input array V must be 3D or 4D.")
 

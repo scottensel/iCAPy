@@ -19,7 +19,7 @@ def ta_spatial(y, param):
     if 'LambdaSpat' not in param:
         param['LambdaSpat'] = 2
     if 'Lip' not in param:
-        param['Lip'] = 400
+        param['Lip'] = 12
     if 'tol' not in param:
         param['tol'] = 1e-6
 
