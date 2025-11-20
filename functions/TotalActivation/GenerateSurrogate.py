@@ -11,8 +11,13 @@ def generate_surrogate(TC, path, param, fid=None):
     for iter_tc in range(param['NbrVoxels']):
         rand_signal = np.fft.fft(np.random.rand(n_time_points))
         phase_signal = np.angle(rand_signal)
-        Surrogate[iter_tc, :] = np.real(np.fft.ifft(np.exp(1j * phase_signal) * np.abs(np.fft.fft(TC[iter_tc, :]))))
-
+        Surrogate[iter_tc, :] = np.real(
+            np.fft.ifft(
+                np.exp(1j * phase_signal) *
+                np.abs(np.fft.fft(TC[iter_tc, :], n=n_time_points)),
+                n=n_time_points
+            )
+        )
     # Log surrogate data generation details
     if fid:
         write_information(fid, f"Surrogate data generated and saved at: {os.path.join(path, 'TA_results', param['title'], 'Surrogate')}...")

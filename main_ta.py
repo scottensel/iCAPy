@@ -6,6 +6,7 @@ def main():
 
     # Initialize parameters by combining both input setups
     param = setup_data_params()
+
     param.update(setup_ta_params())  # Integrate TA-specific settings
 
     # Run Total Activation (TA) with the configured parameters

@@ -16,13 +16,17 @@ from functions.TotalActivation.GenerateSurrogate import generate_surrogate
 from functions.Utilities.save4Dnii import save4dnii
 import os
 import pickle
-
+import copy
 
 def run_ta(param):
     # Set date and title for the project
     param['date'] = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     if 'title' not in param or not param['title']:
         param['title'] = param['date']
+
+    # Will contain the parameters initially entered by the user, prior to any
+    # change within the loop
+    param_CI = copy.deepcopy(param)
 
     # Create log directory if it doesn't exist
     log_path = os.path.join(param['PathData'], 'TAlogs')
@@ -98,9 +102,29 @@ def run_ta(param):
                 save4dnii(results_path, 'inputData', 'TC2', TC, param['fHeader'].fname, param['mask'],
                            param['Dimension'])
 
+
+                # Total Activation Start
+                ##################################################
+                # The 'analyze' and 'reconstruct' filter cases are
+                # different: 'analyze' has an added zero, which means, an additional
+                # derivative (probably reflects the fact that we are working with
+                # sparsity imposed at the level of the innovation signal, the
+                # derivative of the piece-wise constant neural activity)
+
+                # Creates the filters required: the one that 'deconvolves the BOLD
+                # signal and derivates it' (analyze), and the one that 'deconvolves
+                # the BOLD-like signal into neural activity' (reconstruct). The
+                # matlab variables contain the non-null values of the filter
+                # coefficients, from sample f[n] = f[0]
+                param = hrf_filters(param)
+
+                # The param vecotr is updated within the total activation scheme; I want to give
+                # exactly the saem input for surrogate and the real, si i save the state of the param
+                # piror to TA
+                param_tmp = copy.deepcopy(param)
+
                 # Total Activation for Real Data
                 if not ta_real_done:
-                    param = hrf_filters(param)
                     activity_related, param = run_total_activation(TC.T, param)
                     innovation, activity_inducing = generate_innovations(activity_related, param)
 
@@ -126,11 +150,22 @@ def run_ta(param):
                     with open(os.path.join(results_path, 'TotalActivation', 'param.pkl'), 'wb') as f:
                         pickle.dump(param, f)
 
+                elif ta_real_done:
+                    write_information(fid, 'Total activation on real data already computed, skipping...')
+
                 # Total Activation for Surrogate Data
-                if ta_surrogate_done != 1:
-                    surrogate = generate_surrogate(TC, subj_path_ta, param, fid).T
-                    activity_related_surrogate = run_total_activation(surrogate, param)
-                    activity_related_surrogate = activity_related_surrogate[0]
+                if not ta_surrogate_done:
+                    # surrogate data generation
+                    surrogate = generate_surrogate(TC, subj_path_ta, param, fid)
+
+                    # save TA data
+                    save4dnii(results_path, 'Surrogate', 'Surrogate', surrogate, param['fHeader'].fname, param['mask'],
+                              param['Dimension'])
+                    surrogate = surrogate.T
+
+                    # run TA on surrogate
+                    activity_related_surrogate = run_total_activation(surrogate, param_tmp)[0]
+                    # activity_related_surrogate = activity_related_surrogate[0]
                     innovation_surrogate, activity_inducing_surrogate = generate_innovations(activity_related_surrogate,
                                                                                              param)
 
@@ -156,4 +191,13 @@ def run_ta(param):
                     with open(os.path.join(results_path, 'Surrogate', 'param.pkl'), 'wb') as f:
                         pickle.dump(param, f)
 
+                elif ta_surrogate_done:
+
+                    write_information(fid, 'Total activation on surrogate data already computed, skipping...')
+
             write_information(fid, f'Finished running total activation for subject {subj_path_ta}...')
+
+        # Resets the parameters to what they were at the start of the loop
+        # (before any subject-specific change could have been made
+        del param
+        param = copy.deepcopy(param_CI)

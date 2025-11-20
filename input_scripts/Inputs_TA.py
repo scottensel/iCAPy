@@ -14,8 +14,8 @@ def setup_ta_params():
     param['Nit'] = 2 #5
 
     # Number of iterations for temporal and spatial regularization schemes
-    param['NitTemp'] = 20 #500
-    param['NitSpat'] = 15 #400
+    param['NitTemp'] = 3 #500
+    param['NitSpat'] = 3 #400
 
     # Tolerance threshold for convergence
     param['tol'] = 1e-6
