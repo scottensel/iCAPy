@@ -4,21 +4,22 @@ def setup_data_params():
     param = {}
 
     # Path to data and TR settings
-    param['PathData'] = 'D:/iCAP/Data/Python/Ketamine/Khali'
+    param['PathData'] = 'F:/iCAP/Data/Python/Ketamine/Khali'
     param['TR'] = 2.40
 
     # List of subjects
-    param['Subjects'] = ['run5_20130209']
+    # param['Subjects'] = ['run5_20130209', 'run5_20130308', 'run7_20130322'] #'run5_20130209'; '/run5_20130308'; '/run7_20130322'
+    param['Subjects'] = ['run5_20130209', 'run5_20130308', 'run7_20130322'] #'run5_20130209'; '/run5_20130308'; '/run7_20130322'
     param['n_subjects'] = len(param['Subjects'])
 
     # Title for this analysis session
-    param['title'] = 'test'
+    param['title'] = 'test3'
 
     # Data folder informatio
-    param['Folder_functional'] = ['rs/realigned']
-    param['TA_func_prefix'] = ['ketamine']
-    param['Folder_GM'] = ['T1']
-    param['TA_gm_prefix'] = ['rest_c1']
+    param['Folder_functional'] = ['rs/realigned','rs/realigned','rs/realigned']
+    param['TA_func_prefix'] = ['ketamine','ketamine','ketamine']
+    param['Folder_GM'] = ['T1','T1','T1']
+    param['TA_gm_prefix'] = ['rest_c2','rest_c2','rest_c2']
 
     # Gray matter mask thresholding and morphological operations
     param['T_gm'] = 0.3
@@ -41,6 +42,14 @@ def setup_data_params():
     param['FD_threshold'] = 0.5
     param['interType'] = 'spline'
 
+    # run temporal regularization using parrlelt process of CPU cores
+    # I HIGHLY RECCOMEND setting equal to 1 as this is a substantial speed up
+    # however it will use 100% of your CPU
+    param['runParallel'] = 1
+
+
+
+    # TODO: remove all of this from the code
     # CUDA/GPU setting
     param['use_cuda'] = 0  # Set to 1 if GPU acceleration is available
 

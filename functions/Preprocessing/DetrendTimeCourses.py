@@ -9,11 +9,11 @@ def detrend_time_courses(TC, param, fid=None):
     for i in range(param['NbrVoxels']):
         # Detrend using DCT and normalize (490,) shape
         TCN[i, :], c_dct = sol_dct(TC_tmp[:, i], param['TR'], param['DCT_TS'])
-        TCN[i, :] /= np.std(TCN[i, :])
+        TCN[i, :] /= np.std(TCN[i, :], ddof=1)
 
     # Log the detrending process
     # if fid:
-    # fid.write(f"Detrending with DCT cutoff = {param['DCT_TS']} s, {len(param['Covariates'])} covariates.\n")
+    # fid.write(f"Detrending with DCT cutoff = {4param['DCT_TS']} s, {len(param['Covariates'])} covariates.\n")
     write_information(fid, f"Detrending with DCT cutoff = {param['DCT_TS']} s, {len(param['Covariates'])} covariates.")
 
     return TCN

@@ -14,9 +14,11 @@ from functions.TotalActivation.RunTotalActivation import run_total_activation
 from functions.TotalActivation.Generate_Innovations import generate_innovations
 from functions.TotalActivation.GenerateSurrogate import generate_surrogate
 from functions.Utilities.save4Dnii import save4dnii
+import time
 import os
 import pickle
 import copy
+import h5py
 
 def run_ta(param):
     # Set date and title for the project
@@ -125,7 +127,16 @@ def run_ta(param):
 
                 # Total Activation for Real Data
                 if not ta_real_done:
+                    start_time = time.perf_counter()
+
                     activity_related, param = run_total_activation(TC.T, param)
+
+                    end_time = time.perf_counter()
+
+                    elapsed_time = end_time - start_time
+
+                    write_information(fid, f'It took {elapsed_time:.2f} seconds to run total activation on real data...')
+
                     innovation, activity_inducing = generate_innovations(activity_related, param)
 
                     # Save results for real data
@@ -150,6 +161,10 @@ def run_ta(param):
                     with open(os.path.join(results_path, 'TotalActivation', 'param.pkl'), 'wb') as f:
                         pickle.dump(param, f)
 
+                    # free memory
+                    del innovation, activity_inducing, activity_related
+
+
                 elif ta_real_done:
                     write_information(fid, 'Total activation on real data already computed, skipping...')
 
@@ -158,10 +173,14 @@ def run_ta(param):
                     # surrogate data generation
                     surrogate = generate_surrogate(TC, subj_path_ta, param, fid)
 
+                    # with h5py.File(os.path.join("F:/iCAP/Data/Matlab/Ketamine/Khali/", param['Subjects'][i_TA], 'TA_results/test3/Surrogate/Surrogate.mat'), "r") as f:
+                    #     surrogate = np.array(f["Surrogate"])
+
                     # save TA data
                     save4dnii(results_path, 'Surrogate', 'Surrogate', surrogate, param['fHeader'].fname, param['mask'],
                               param['Dimension'])
                     surrogate = surrogate.T
+
 
                     # run TA on surrogate
                     activity_related_surrogate = run_total_activation(surrogate, param_tmp)[0]
@@ -191,13 +210,15 @@ def run_ta(param):
                     with open(os.path.join(results_path, 'Surrogate', 'param.pkl'), 'wb') as f:
                         pickle.dump(param, f)
 
+                    del innovation_surrogate, activity_inducing_surrogate, activity_related_surrogate, surrogate
+
                 elif ta_surrogate_done:
 
                     write_information(fid, 'Total activation on surrogate data already computed, skipping...')
 
             write_information(fid, f'Finished running total activation for subject {subj_path_ta}...')
 
-        # Resets the parameters to what they were at the start of the loop
-        # (before any subject-specific change could have been made
-        del param
-        param = copy.deepcopy(param_CI)
+            # Resets the parameters to what they were at the start of the loop
+            # (before any subject-specific change could have been made
+            del param
+            param = copy.deepcopy(param_CI)

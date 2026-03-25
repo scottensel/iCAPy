@@ -13,15 +13,15 @@ def setup_clustering_data_params():
 
     # General data information
     # ------------------------
-    param["PathData"] = "example data"
+    param["PathData"] = 'F:/iCAP/Data/Python/Ketamine/Khali'
 
     # Links towards the data of all subjects to analyze
     # -------------------------------------------------
-    param["Subjects"] = ["sub-10159", "sub-10171"]
+    param["Subjects"] = ["run5_20130209", "run5_20130308", "run7_20130322"]
     param["n_subjects"] = len(param["Subjects"])
 
     # Title for this run (must match the title used for TA/thresholding)
-    param["title"] = "exampleToolbox_openfMRI"
+    param["title"] = "test3"
 
     # Thresholding-related information (used when selecting frames for iCAPs)
     # -----------------------------------------------------------------------

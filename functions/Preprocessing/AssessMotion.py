@@ -21,7 +21,9 @@ def assess_motion(path, soi, param, fid=None):
         raise FileNotFoundError("Motion file not found or multiple motion files present.")
 
     RP = np.loadtxt(os.path.join(motion_folder, motion_file))
-    RP = RP[param['skipped_scans_motionfile']:]  # Remove initial scans
+
+    if 'skipped_scans_motionfile' in param and int(param['skipped_scans_motionfile']) > 0:
+        RP = RP[int(param['skipped_scans_motionfile']):]
 
     # Convert rotational displacements from radians to mm
     RP[:, 3:6] *= (180 / np.pi)

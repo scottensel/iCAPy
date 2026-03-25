@@ -13,11 +13,6 @@ def ta_temporal(TCN, param):
     # Define high-pass Daubechies wavelet filter for noise estimation
     g = np.array([0, -0.12941, -0.22414, 0.83652, -0.48296])
 
-    # if 'LambdaTempFin' not in param:
-    #     param['LambdaTempFin'] = [None] * param['NbrVoxels']  # or another length as required
-    # if 'NoiseEstimateFin' not in param:
-    #     param['NoiseEstimateFin'] = [None] * param['NbrVoxels']  # or another length as required
-
     # start_time = time.time()
 
    # Iterate over each voxel for temporal regularization
@@ -35,10 +30,12 @@ def ta_temporal(TCN, param):
         TC_OUT[:, i], param_out = ta_temporal_onetimecourse(TCN[:, i], i, param)
 
         # Store the final regularization and noise estimates
-
-        if i == 0:
+        if 'NoiseEstimateFin' not in param and 'LambdaTempFin' not in param:
             param['LambdaTempFin'] = [param_out['LambdasTempFin']]
             param['NoiseEstimateFin'] = [param_out['NoiseEstimateFin']]
+        elif len(param['NoiseEstimateFin'])-1 >= i:
+            param['LambdaTempFin'][i] = param_out['LambdasTempFin']
+            param['NoiseEstimateFin'][i] = param_out['NoiseEstimateFin']
         else:
             param['LambdaTempFin'].append(param_out['LambdasTempFin'])
             param['NoiseEstimateFin'].append(param_out['NoiseEstimateFin'])

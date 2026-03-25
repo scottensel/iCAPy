@@ -105,7 +105,7 @@ def _getCompSign(activeComp, tc_row):
     return activeComp
 
 
-def computeTemporalCharacteristics(TC, clusteringResults, param):
+def compute_temporal_characteristics(TC, clusteringResults, param):
     """Python translation of computeTemporalCharacteristics.m
 
     Computes temporal characteristics of iCAPs time courses.
@@ -233,7 +233,7 @@ def computeTemporalCharacteristics(TC, clusteringResults, param):
 
     # loop over all subjects
     for iS in range(nSub):
-        subj_idx = iS + 1  # MATLAB subject index
+        subj_idx = iS  # MATLAB subject index
         vols_iS = AI_subject_labels == subj_idx
         subj_scrub = scrub_labels[vols_iS]
         tempChar["scrub_labels"][iS] = subj_scrub.astype(int)
@@ -254,7 +254,7 @@ def computeTemporalCharacteristics(TC, clusteringResults, param):
         nClus_i, nTP_i = TC_iS.shape
         flat = TC_iS.reshape(-1, order="F")
         mean = flat.mean()
-        std = flat.std()
+        std = flat.std(ddof=1)
         if std == 0:
             flat_z = np.zeros_like(flat)
         else:
@@ -347,7 +347,8 @@ def computeTemporalCharacteristics(TC, clusteringResults, param):
                 )
 
             # innovation counts for this iCAP / subject
-            mask_ic = (IDX == (iC + 1)) & (subject_labels == subj_idx)
+            # mask_ic = (IDX == (iC + 1)) & (subject_labels == subj_idx)
+            mask_ic = (IDX == iC) & (subject_labels == subj_idx)
             innov_counts_ic = int(np.count_nonzero(mask_ic))
             tempChar["innov_counts"][iC, iS] = innov_counts_ic
             if innov_counts_total > 0:

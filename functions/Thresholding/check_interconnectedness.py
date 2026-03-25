@@ -70,10 +70,13 @@ def check_interconnectedness(data2d, param):
 
     # Build connectivity structure for ndimage.label
     if conn == 6:
-        structure = ndimage.generate_binary_structure(3, 1)  # 6-connected in 3D
-    else:
-        # For 18 or 26 we approximate with full 3x3x3 connectivity
+        structure = ndimage.generate_binary_structure(3, 1)
+    elif conn == 18:
+        structure = ndimage.generate_binary_structure(3, 2)  # THIS is 18-connected in SciPy
+    elif conn == 26:
         structure = np.ones((3, 3, 3), dtype=bool)
+    else:
+        raise ValueError("conn must be 6, 18, or 26")
 
     # Loop over time points and remove too small connected components
     for it in range(n_tp):

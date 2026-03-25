@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def ZScore_iCAPs(iCAPs, I_sig=None, IDX=None):
+def zscore_icaps(iCAPs, I_sig=None, IDX=None):
     """Python translation of ZScore_iCAPs.m
 
     Performs spatial z-scoring of iCAP maps.
@@ -27,7 +27,11 @@ def ZScore_iCAPs(iCAPs, I_sig=None, IDX=None):
         # Histogram-based mode / median-like center as in MATLAB
         hist_vals, bin_edges = np.histogram(row, bins=100)
         aind = np.where(hist_vals == hist_vals.max())[0]
-        med = bin_edges[aind[0]]
+        # matlab used bin centers but here python automates to bin edges so we find the center
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        med = bin_centers[aind[0]]
+        # med = bin_edges[aind[0]]
+
         # Normalization: std-like denominator copied from MATLAB intent
         denom = np.sqrt(np.sum((row - med) ** 2) / float(row.size))
         if denom == 0:

@@ -30,24 +30,28 @@ def ThresholdTimeCourse(S, T):
     n_tp, n_vox = S.shape
 
     # Check dimensions of T. In MATLAB the expected size is (2 x n_vox)
-    if T.ndim == 1:
-        # single pair of thresholds replicated across voxels
-        if T.size != 2:
-            raise ValueError("ThresholdTimeCourse: single threshold vector must have length 2")
-        T = np.tile(T.reshape(2, 1), (1, n_vox))
-    elif T.shape[0] == n_vox and T.shape[1] == 2:
-        # transposed input (n_vox x 2); transpose to (2 x n_vox)
-        T = T.T
-    elif T.shape[0] != 2 or T.shape[1] != n_vox:
-        raise ValueError(
-            "ThresholdTimeCourse: wrong number/shape of threshold pairs – expected (2, n_vox)"
-        )
+    if np.shape(T)[1] != n_vox:
+        raise ValueError("Threshold Time Course: wrong number of threshold pairs, one threshold pre voxel required!")
 
-    lower = T[0, :].reshape(1, -1)
-    upper = T[1, :].reshape(1, -1)
+    if np.shape(T)[0] != 2:
+        raise ValueError("Threshold Time Course: wrong number of thresholds, one positive and one negative threshold required!")
 
-    Out = np.zeros_like(S, dtype=int)
-    Out[S <= lower] = -1
-    Out[S >= upper] = 1
+    # lower = T[0, :].reshape(1, -1)
+    # upper = T[1, :].reshape(1, -1)
+    #
+    # Out = np.zeros_like(S, dtype=int)
+    # Out[S <= lower] = -1
+    # Out[S >= upper] = 1
+
+    # Initially filling the output with zeros. If we find a data point
+    # lying above the thresholds, we change the related value
+    Out = np.zeros_like(S, dtype=float)
+
+    # negative threshold (T[0, :]) and positive threshold (T[1, :])
+    neg_th = T[0, :][np.newaxis, :]  # shape (1, nVox), broadcasts over time
+    pos_th = T[1, :][np.newaxis, :]
+
+    Out[S <= neg_th] = -1
+    Out[S >= pos_th] = 1
 
     return Out

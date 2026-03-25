@@ -12,14 +12,20 @@ def setup_clustering_params():
     """
     param = {}
 
+    # performance Information
+    # only matters if using Windows
+    # kmeans has a memory leak if you have too many threads
+    # this is not a problem for low number of subjects but for large number this may be a problem
+    param["limitThreads"] = 4
+
     # iCAPs-related information
     # -------------------------------------------------------
     # specify if clustering should be done (set to 0 to only run consensus)
     param["doClustering"] = 1
 
     # force recomputation even if outputs already exist
-    param["force_Aggregating"] = 0
-    param["force_Clustering"] = 0
+    param["force_Aggregating"] = 1
+    param["force_Clustering"] = 1
 
     # external mask defining input voxels (if None, intersection of all GMs)
     param["common_mask_file"] = None
@@ -28,8 +34,10 @@ def setup_clustering_params():
     param["extra_mask_file"] = "GM_mask_MNI333_AAL.nii"
 
     # Number of iCAPs K
-    # MATLAB: param.K = 19:21;
-    param["K"] = list(range(19, 22))  # [19, 20, 21]
+    param["K"] = [x for x in range(2, 6)]
+
+    if 0 in param["K"]:
+        raise ValueError("The list of K contains 0")
 
     # Distance type for k-means: 'sqeuclidean' or 'cosine'
     param["DistType"] = "cosine"
@@ -42,6 +50,7 @@ def setup_clustering_params():
     param["MaxIter"] = 300
 
     param["saveSubjectMaps"] = 1
+    param["force_saveSubjectMaps"] = 1
 
     param["saveRegionTables"] = 0
     param["regTab_thres"] = 1.5  # z-score threshold
@@ -49,14 +58,6 @@ def setup_clustering_params():
     param["regTab_atlasFile"] = "AAL90_correctLR.nii"
 
     # Title(s) used to create the folder where iCAPs data will be saved
-    # MATLAB:
-    # for nK=1:length(param.K)
-    #     param.iCAPs_title{nK} = ['K_',num2str(param.K(nK)),'_Dist_',...
-    #             param.DistType,'_Folds_',num2str(param.n_folds)];
-    # end
-    # if length(param.K)==1
-    #     param.iCAPs_title=param.iCAPs_title{1};
-    # end
     k_list = param["K"]
     dist = param["DistType"]
     n_folds = param["n_folds"]
@@ -71,20 +72,14 @@ def setup_clustering_params():
 
     # Consensus clustering parameters
     # -------------------------------------------------------
-    param["doConsensusClustering"] = 0
-    param["force_ConsensusClustering"] = 0
+    param["doConsensusClustering"] = 1
+    param["force_ConsensusClustering"] = 1
 
     # 'items' to subsample frames regardless of subject boundaries
     param["Subsample_type"] = "items"
     param["Subsample_fraction"] = 0.8
     param["cons_n_folds"] = 20
 
-    # MATLAB:
-    # param.cons_title=[num2str(param.K(1)) 'to' num2str(param.K(end)) ...
-    #   '_SubsampleType_' param.Subsample_type ...
-    #   '_Fraction_' strrep(num2str(param.Subsample_fraction),'.','DOT') ...
-    #   '_nFolds_' num2str(param.cons_n_folds) ...
-    #   '_Dist_' param.DistType];
     k_min = k_list[0]
     k_max = k_list[-1]
     frac_str = str(param["Subsample_fraction"]).replace(".", "DOT")

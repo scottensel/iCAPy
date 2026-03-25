@@ -1,106 +1,219 @@
 import os
+import pickle
 import numpy as np
-from sklearn.cluster import KMeans
-from scipy.spatial.distance import cdist
-from scipy.optimize import linear_sum_assignment
+import matplotlib.pyplot as plt
+
+from scipy.spatial.distance import squareform
+from scipy.cluster.hierarchy import linkage, optimal_leaf_ordering, leaves_list
+
+from functions.Utilities.WriteInformation import write_information
 from .Build_Connectivity_Matrix import Build_Connectivity_Matrix
 from .ComputeClusteringQuality import ComputeClusteringQuality
-from functions.Utilities.WriteInformation import write_information
+from .Cosine_Kmeans import cosine_kmeans
+from .MakeiCAPs import _run_one_fold
 
 
-def ConsensusClustering(X, K_range, Subsample_type, Subsample_fraction,
-                        n_folds, DistType, subject_labels, outDir_cons, fid=None):
-    """Python approximation of ConsensusClustering.m
-
-    Runs consensus clustering for a range of cluster numbers K using k-means.
-
-    Parameters
-    ----------
-    X : ndarray, shape (n_items, n_dims)
-        Data matrix (frames x voxels or similar).
-    K_range : array_like
-        Range of K values to test.
-    Subsample_type : {'items', 'subjects'}
-        Subsampling type.
-    Subsample_fraction : float in (0,1]
-        Fraction of items/subjects to keep in each fold.
-    n_folds : int
-        Number of folds.
-    DistType : {'sqeuclidean', 'cosine'}
-        Distance type for k-means and inter-fold matching.
-    subject_labels : ndarray, shape (n_items,)
-        Subject index for each item; used when Subsample_type == 'subjects'.
-    outDir_cons : str
-        Output directory for consensus results.
-    fid : file handle or str or None
-        For logging.
-
-    Returns
-    -------
-    CDF : ndarray, shape (len(K_range), 101)
-    AUC : ndarray, shape (len(K_range),)
-        Quality indices from ComputeClusteringQuality.
+def consensus_clustering(X, subject_labels, param, fid=None):
     """
+    Faithful Python port of MATLAB ConsensusClustering.m
+    """
+    K_range            = np.asarray(param["K_vect"], dtype=int)
+    n_folds            = int(param["cons_n_folds"])
+    n_rep              = int(param["n_folds"])
+    DistType           = param["DistType"]
+    Subsample_fraction = float(param["Subsample_fraction"])
+    Subsample_type     = param["Subsample_type"]
+    MaxIter            = int(param.get("MaxIter", 100))
+    outDir_cons        = param["outDir_cons"]
+    force              = bool(param.get("force_ConsensusClustering", False))
+    limit_threads      = param.get("limitThreads", None)
+
     os.makedirs(outDir_cons, exist_ok=True)
-    X = np.asarray(X)
-    K_range = np.asarray(K_range).astype(int)
+
+    X = np.asarray(X, dtype=np.float64)
     n_items, n_dims = X.shape
+    print(f"n_items {n_items}...")
+    print(f"n_dims {n_dims}...")
 
-    if fid is not None:
-        write_information(fid, f"n_items {n_items}, n_dims {n_dims}")
+    CDF = np.zeros((len(K_range), 101))
+    AUC = np.zeros(len(K_range))
 
-    Consensus_all = []
-
+    # ------------------------------------------------------------------ #
+    # Loop over K values                                                   #
+    # ------------------------------------------------------------------ #
     for k_idx, K in enumerate(K_range):
+        print(f"Running consensus clustering for K = {K}...")
         if fid is not None:
             write_information(fid, f"Running consensus clustering for K = {K}...")
 
-        # Connectivity matrices for each fold
-        M_all = np.zeros((n_items, n_items, n_folds), dtype=float)
+        # MATLAB skips the entire K if consensusResults_K.mat exists and
+        # force=false.  We use the ordered pkl as the equivalent sentinel.
+        ordered_path = os.path.join(outDir_cons, f"Consensus_ordered_{K}.pkl")
+        if os.path.isfile(ordered_path) and not force:
+            print("consensus clustering already done, skipping ...")
+            if fid is not None:
+                write_information(fid, "consensus clustering already done, skipping ...")
+            # Still need CDF/AUC - load ordered and recompute
+            with open(ordered_path, "rb") as f:
+                Consensus_ordered = pickle.load(f)
+            CDF[k_idx, :], AUC[k_idx] = ComputeClusteringQuality(Consensus_ordered, K)
+            del Consensus_ordered
+            continue
 
-        for iFold in range(n_folds):
-            # Subsampling
-            if Subsample_type == "subjects":
-                subj_list = np.unique(subject_labels)
-                n_subjects = subj_list.size
-                n_subjects_ss = int(np.floor(Subsample_fraction * n_subjects))
-                subsampled_subj = np.random.choice(subj_list, size=n_subjects_ss, replace=False)
-                tmp_ss = np.isin(subject_labels, subsampled_subj)
-            else:
-                n_items_ss = int(np.floor(Subsample_fraction * n_items))
-                tmp_idx = np.random.choice(n_items, size=n_items_ss, replace=False)
-                tmp_ss = np.zeros(n_items, dtype=bool)
-                tmp_ss[tmp_idx] = True
+        # -------------------------------------------------------------- #
+        # Build or load unordered Consensus matrix                        #
+        # -------------------------------------------------------------- #
+        consensus_path = os.path.join(outDir_cons, f"Consensus_{K}.pkl")
 
-            X_ss = X[tmp_ss, :]
+        if os.path.isfile(consensus_path):
+            print(f"Loading existing Consensus_{K} ...")
+            with open(consensus_path, "rb") as f:
+                Consensus = pickle.load(f)
 
-            # K-means clustering
-            # Map DistType to sklearn metric
-            # sklearn KMeans uses Euclidean; cosine distance could be approximated by normalizing X.
-            if DistType == "cosine":
-                # Normalize rows
-                norm = np.linalg.norm(X_ss, axis=1, keepdims=True)
-                norm[norm == 0] = 1.0
-                X_km = X_ss / norm
-            else:
-                X_km = X_ss
+        else:
+            M_sum = np.zeros((n_items, n_items))
+            I_sum = np.zeros((n_items, n_items))
 
-            km = KMeans(n_clusters=K, n_init=10, random_state=None)
-            IDX_ss = km.fit_predict(X_km) + 1  # 1-based labels to mimic MATLAB
+            for h in range(n_folds):
+                print(f"Fold {h + 1}:")
 
-            # Build connectivity matrix for this fold
-            M = Build_Connectivity_Matrix(IDX_ss, np.where(tmp_ss)[0], Subsample_type, n_items)
-            M_all[:, :, iFold] = M
+                # -------------------------------------------------------- #
+                # Subsampling                                               #
+                # -------------------------------------------------------- #
+                if Subsample_type == "items":
+                    n_items_ss = int(np.floor(Subsample_fraction * n_items))
+                    idx_ss     = np.random.choice(n_items, n_items_ss, replace=False)
+                    I_vec      = np.zeros(n_items, dtype=int)
+                    I_vec[idx_ss] = 1
 
-        # Consensus matrix: average across folds
-        Consensus = np.mean(M_all, axis=2)
-        Consensus_all.append(Consensus)
+                elif Subsample_type == "subjects":
+                    if subject_labels is None or len(subject_labels) == 0:
+                        raise ValueError("subject_labels required for subjects subsampling")
+                    subjects       = np.unique(subject_labels)
+                    n_subjects_ss  = int(np.floor(Subsample_fraction * len(subjects)))
+                    subjects_ss    = np.random.choice(subjects, n_subjects_ss, replace=False)
+                    I_vec          = np.zeros(n_items, dtype=int)
+                    for s in subjects_ss:
+                        I_vec[subject_labels == s] = 1
+                else:
+                    raise ValueError(f"Unsupported Subsample_type: {Subsample_type}")
 
-        # Optionally save each Consensus matrix
-        np.save(os.path.join(outDir_cons, f"Consensus_{K}.npy"), Consensus)
+                # Indicator matrix  (MATLAB: I_sum += I_vec * I_vec')
+                I_sum += np.outer(I_vec, I_vec)
+                X_ss   = X[I_vec > 0, :]
 
-    # Stack into 3D array for quality computation
-    Consensus_stack = np.stack(Consensus_all, axis=2)
-    CDF, AUC = ComputeClusteringQuality(Consensus_stack, K_range)
+                # -------------------------------------------------------- #
+                # Clustering                                                #
+                # MATLAB: kmeans(X_ss, K, 'Distance', DistType, ...)       #
+                # For cosine we use cosine_kmeans (validated against MATLAB)#
+                # For sqeuclidean we use _run_one_fold which uses sklearn   #
+                # -------------------------------------------------------- #
+                IDX, _, _, _ = _run_one_fold(
+                    X_ss, K, DistType,
+                    n_init=n_rep, max_iter=MaxIter,
+                    limit_threads=limit_threads,
+                )
+
+                # -------------------------------------------------------- #
+                # Connectivity matrix                                       #
+                # MATLAB: Build_Connectivity_Matrix(IDX, find(I_vec>0), ..)#
+                # find(I_vec>0) returns 1-based indices in MATLAB;         #
+                # we pass 0-based indices and handle that in the function   #
+                # -------------------------------------------------------- #
+                print("Building connectivity matrix M ...")
+                M_sum += Build_Connectivity_Matrix(
+                    IDX,
+                    np.where(I_vec > 0)[0],
+                    Subsample_type,
+                    n_items,
+                )
+
+                del X_ss, IDX, I_vec
+
+            # ------------------------------------------------------------ #
+            # Consensus matrix  (MATLAB: Consensus = M_sum ./ I_sum)       #
+            # ------------------------------------------------------------ #
+            Consensus       = np.zeros_like(M_sum)
+            valid           = I_sum > 0
+            Consensus[valid] = M_sum[valid] / I_sum[valid]
+
+            n_invalid = int(np.sum(~valid))
+            if n_invalid > 0:
+                msg = (f"{n_invalid} ({100*n_invalid/valid.size:.2f}%) pairs never "
+                       f"co-sampled — increase n_folds!")
+                print(f"Warning: {msg}")
+                if fid is not None:
+                    write_information(fid, f"Warning: {msg}")
+                Consensus[~valid] = 0.0
+
+            del M_sum, I_sum, valid
+
+            print("Saving consensus results (not ordered) ...")
+            with open(consensus_path, "wb") as f:
+                pickle.dump(Consensus, f)
+
+        # -------------------------------------------------------------- #
+        # Ordering  (MATLAB: linkage + optimalleaforder)                  #
+        # -------------------------------------------------------------- #
+        print("Ordering consensus matrix ...")
+        D      = 1.0 - Consensus
+        np.fill_diagonal(D, 0.0)
+        D_cond = squareform(D, checks=False)
+        Z      = linkage(D_cond, method="average")
+        Z_opt  = optimal_leaf_ordering(Z, D_cond)
+        order  = leaves_list(Z_opt)
+
+        Consensus_ordered = Consensus[np.ix_(order, order)]
+        del Consensus, D, D_cond, Z, Z_opt, order
+
+        # -------------------------------------------------------------- #
+        # CDF / AUC                                                        #
+        # -------------------------------------------------------------- #
+        CDF[k_idx, :], AUC[k_idx] = ComputeClusteringQuality(Consensus_ordered, K)
+
+        # -------------------------------------------------------------- #
+        # Save ordered consensus + PNG                                     #
+        # -------------------------------------------------------------- #
+        print("Saving consensus results ...")
+        with open(ordered_path, "wb") as f:
+            pickle.dump(Consensus_ordered, f)
+
+        fig, ax = plt.subplots()
+        im = ax.imshow(Consensus_ordered, vmin=0, vmax=1)
+        fig.colorbar(im, ax=ax)
+        ax.set_title(f"k= {K}")
+        fig.savefig(
+            os.path.join(outDir_cons, f"Consensus_ordered_{K}.png"),
+            dpi=200, bbox_inches="tight",
+        )
+        plt.close(fig)
+
+        del Consensus_ordered
+
+    # ------------------------------------------------------------------ #
+    # Save CDF / AUC + plots                                              #
+    # ------------------------------------------------------------------ #
+    with open(os.path.join(outDir_cons, "CDF.pkl"), "wb") as f:
+        pickle.dump(CDF, f)
+    with open(os.path.join(outDir_cons, "AUC.pkl"), "wb") as f:
+        pickle.dump(AUC, f)
+
+    x = np.linspace(0, 1, 101)
+    fig, ax = plt.subplots()
+    for k_idx, K in enumerate(K_range):
+        ax.plot(x, CDF[k_idx, :], linewidth=2, label=str(K))
+    ax.legend(loc="lower right")
+    ax.set_title("CDF")
+    fig.savefig(os.path.join(outDir_cons, "CDF.svg"), format="svg", bbox_inches="tight")
+    fig.savefig(os.path.join(outDir_cons, "CDF.png"), format="png", bbox_inches="tight")
+    plt.close(fig)
+
+    fig, ax = plt.subplots()
+    ax.plot(K_range, AUC, "-o", linewidth=2)
+    ax.set_xlabel("K")
+    ax.set_title("AUC")
+    fig.savefig(os.path.join(outDir_cons, "AUC.svg"), format="svg", bbox_inches="tight")
+    fig.savefig(os.path.join(outDir_cons, "AUC.png"), format="png", bbox_inches="tight")
+    plt.close(fig)
 
     return CDF, AUC

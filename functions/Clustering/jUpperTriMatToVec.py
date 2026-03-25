@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def jUpperTriMatToVec(m, offset=0):
+def jUpperTriMatToVec(m, offset=1):
     """Python version of jUpperTriMatToVec.m
 
     Converts the upper-triangular part of a matrix into a vector.

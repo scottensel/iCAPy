@@ -1,19 +1,14 @@
 import numpy as np
 from functions.TotalActivation.Spatial_TA.gradient3D_full import gradient3D_full
-try:
-    import cupy as cp  # Import CuPy if available
-except ImportError:
-    cp = None  # Set to None if CuPy is not available
 
-def evaluate_3D_TV(y, use_cuda=False):
+def evaluate_3D_TV(y):
 
     # Choose backend
-    xp = cp if use_cuda and cp is not None else np
 
-    dx, dy, dz = gradient3D_full(y, use_cuda=use_cuda)
+    dx, dy, dz = gradient3D_full(y)
 
-    amplitude = xp.sqrt(abs(dx) ** 2 + abs(dy) ** 2 + abs(dz) ** 2)
+    amplitude = np.sqrt(abs(dx) ** 2 + abs(dy) ** 2 + abs(dz) ** 2)
 
-    total_variation = xp.sum(amplitude)
+    total_variation = np.sum(amplitude)
 
     return total_variation

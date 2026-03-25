@@ -28,6 +28,10 @@ def save4dnii(path, subFolder, fname, data, hdrFilename, mask1D=None, dim3D=None
     if mask1D is None and data.ndim == 2:
         mask1D = np.ones(data.shape[0], dtype=bool)
 
+    # just for python if a mask comes in 1D
+    if data.ndim == 1:
+        data = data.reshape(-1, 1)
+
     # Handling 2D data case (masked within-brain voxels)
     if data.ndim == 2:
         if data.shape[0] < data.shape[1]:  # Likely inverted data

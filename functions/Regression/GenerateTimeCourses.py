@@ -2,7 +2,7 @@ import numpy as np
 from functions.Utilities.WriteInformation import write_information
 
 
-def GenerateTimeCourses(Activity_inducing, AI_subject_labels, iCAPs, param, fid=None):
+def generate_time_courses(Activity_inducing, AI_subject_labels, iCAPs, param, fid=None):
     """Simplified Python approximation of GenerateTimeCourses.m.
 
     The original MATLAB implementation uses constrained optimization

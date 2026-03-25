@@ -1,78 +1,95 @@
 import numpy as np
-from .ZScore_iCAPs import ZScore_iCAPs
+from .ZScore_iCAPs import zscore_icaps
 
 
-def ReorderiCAPs(IDX, iCAPs, iCAPs_folds=None):
-    """Python translation of ReorderiCAPs.m
+def reorder_icaps(IDX, iCAPs, icaps_folds=None):
+    """
+    Python translation of ReorderiCAPs.m, but with Python-native 0-based labels.
 
     Reorders clusters according to the number of frames per cluster.
 
     Parameters
     ----------
     IDX : array_like, shape (n_frames,)
-        Cluster labels (1..nClus).
+        Cluster labels (0..nClus-1).
     iCAPs : ndarray, shape (nClus, n_vox)
         iCAP spatial maps.
-    iCAPs_folds : dict or None
-        Optional structure containing per-fold clustering results:
-        keys: 'iCAPs', 'IDX', 'sum_dist', 'dist_to_centroid', 'iCAPs_z'.
+    icaps_folds : dict or list or None
+        - If dict: contains per-fold clustering results with keys:
+            'iCAPs', 'IDX', 'sum_dist', 'dist_to_centroid', 'iCAPs_z'
+        - If [] (list): indicates replicate data not saved (MATLAB-style iCAPs_folds = [])
+        - If None: no fold info.
 
     Returns
     -------
     IDX2 : ndarray, shape (n_frames,)
-        Reordered cluster labels.
+        Reordered cluster labels (0..nClus-1).
     iCAPs2 : ndarray, shape (nClus, n_vox)
         Reordered iCAP maps.
-    iCAPs_folds2 : dict or None
-        Reordered folds structure (if provided), else None.
+    icaps_folds2 : dict or list or None
+        Reordered folds structure if dict provided; otherwise returns original icaps_folds.
     """
     IDX = np.asarray(IDX).astype(int)
     iCAPs = np.asarray(iCAPs)
-    n_clusters = int(IDX.max())
 
+    # number of clusters (safer from iCAPs than from IDX.max() when some clusters are empty)
+    n_clusters = int(iCAPs.shape[0])
+
+    # count frames per cluster
     n_frames = np.zeros(n_clusters, dtype=int)
-    for iC in range(1, n_clusters + 1):
-        n_frames[iC - 1] = np.sum(IDX == iC)
+    for iC in range(n_clusters):
+        n_frames[iC] = int(np.sum(IDX == iC))
 
     # sort clusters by decreasing size
-    isort = np.argsort(-n_frames)  # descending
-    # new labels: 1..n_clusters in sorted order
-    IDX2 = np.zeros_like(IDX)
-    for new_label, old_idx in enumerate(isort, start=1):
-        IDX2[IDX == (old_idx + 1)] = new_label
+    isort = np.argsort(-n_frames)
 
-    # reorder maps
+    # relabel map: old_label -> new_label (both 0-based)
+    relabel = np.empty(n_clusters, dtype=int)
+    for new_label, old_label in enumerate(isort):
+        relabel[old_label] = new_label
+
+    # reorder labels and maps
+    IDX2 = relabel[IDX]
     iCAPs2 = iCAPs[isort, :]
 
-    iCAPs_folds2 = None
-    if iCAPs_folds is not None and len(iCAPs_folds.get('iCAPs', [])) > 0:
-        iCAPs_folds2 = {
-            'iCAPs': [],
-            'IDX': [],
-            'sum_dist': [],
-            'dist_to_centroid': [],
-            'iCAPs_z': [],
-        }
-        n_folds = len(iCAPs_folds['iCAPs'])
-        for iFold in range(n_folds):
-            iCAPs_fold = np.asarray(iCAPs_folds['iCAPs'][iFold])
-            IDX_fold = np.asarray(iCAPs_folds['IDX'][iFold]).astype(int)
-            sum_dist_fold = np.asarray(iCAPs_folds['sum_dist'][iFold])
-            dist_to_centroid_fold = np.asarray(iCAPs_folds['dist_to_centroid'][iFold])
-            iCAPs_z_fold = np.asarray(iCAPs_folds['iCAPs_z'][iFold])
+    # If folds are not a dict (None or []), do nothing further (MATLAB iCAPs_folds = [])
+    if not isinstance(icaps_folds, dict):
+        return IDX2, iCAPs2, icaps_folds
 
-            IDX_new = np.zeros_like(IDX_fold)
-            for new_label, old_idx in enumerate(isort, start=1):
-                IDX_new[IDX_fold == (old_idx + 1)] = new_label
+    # If dict is present but no fold data, do nothing further
+    if ("iCAPs" not in icaps_folds) or (len(icaps_folds["iCAPs"]) == 0):
+        return IDX2, iCAPs2, icaps_folds
 
-            iCAPs_new = iCAPs_fold[isort, :]
-            iCAPs_z_new = iCAPs_z_fold[isort, :]
-            sum_dist_new = sum_dist_fold[isort]
-            dist_to_centroid_new = dist_to_centroid_fold[:, isort]
+    # reorder fold structures
+    icaps_folds2 = {
+        "iCAPs": [],
+        "IDX": [],
+        "sum_dist": [],
+        "dist_to_centroid": [],
+        "iCAPs_z": [],
+    }
 
-            iCAPs_folds2['iCAPs'].append(iCAPs_new)
-            iCAPs_folds2['IDX'].append(IDX_new)
-            iCAPs_folds2['sum_dist'].append(sum_dist_new)
-            iCAPs_folds2['dist_to_centroid'].append(dist_to_centroid_new)
-            iCAPs_folds2['iCAPs_z'].append(iCAPs_z_new)
-    return IDX2, iCAPs2, iCAPs_folds2
+    n_folds = len(icaps_folds["iCAPs"])
+    for iFold in range(n_folds):
+        iCAPs_fold = np.asarray(icaps_folds["iCAPs"][iFold])
+        IDX_fold = np.asarray(icaps_folds["IDX"][iFold]).astype(int)
+        sum_dist_fold = np.asarray(icaps_folds["sum_dist"][iFold])
+        dist_to_centroid_fold = np.asarray(icaps_folds["dist_to_centroid"][iFold])
+        iCAPs_z_fold = np.asarray(icaps_folds["iCAPs_z"][iFold])
+
+        # relabel fold IDX (0-based)
+        IDX_new = relabel[IDX_fold]
+
+        # reorder per-cluster fold outputs
+        iCAPs_new = iCAPs_fold[isort, :]
+        iCAPs_z_new = iCAPs_z_fold[isort, :]
+        sum_dist_new = sum_dist_fold[isort]
+        dist_to_centroid_new = dist_to_centroid_fold[:, isort]
+
+        icaps_folds2["iCAPs"].append(iCAPs_new)
+        icaps_folds2["IDX"].append(IDX_new)
+        icaps_folds2["sum_dist"].append(sum_dist_new)
+        icaps_folds2["dist_to_centroid"].append(dist_to_centroid_new)
+        icaps_folds2["iCAPs_z"].append(iCAPs_z_new)
+
+    return IDX2, iCAPs2, icaps_folds2

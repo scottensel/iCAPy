@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def getClusterConsensus(IDX, Consensus):
+def get_cluster_consensus(IDX, Consensus):
     """Python translation of getClusterConsensus.m
 
     Computes the average consensus within each cluster.
@@ -9,7 +9,7 @@ def getClusterConsensus(IDX, Consensus):
     Parameters
     ----------
     IDX : array_like, shape (n_items,)
-        Cluster assignments (1..nClus in MATLAB; here assumed >=1 ints).
+        Cluster assignments, 0-based (0..nClus-1), matching the Python pipeline convention.
     Consensus : ndarray, shape (n_items, n_items)
         Consensus matrix.
 
@@ -22,18 +22,20 @@ def getClusterConsensus(IDX, Consensus):
     """
     IDX = np.asarray(IDX).astype(int)
     Consensus = np.asarray(Consensus)
-    nClus = int(IDX.max())
+    nClus = int(IDX.max()) + 1 # 0-based: max label is nClus-1
 
     iCAPs_consensus = np.zeros(nClus, dtype=float)
     iCAPs_nItems = np.zeros(nClus, dtype=int)
 
-    for iC in range(1, nClus + 1):
+    for iC in range(nClus):
         clusID = np.where(IDX == iC)[0]
         if clusID.size == 0:
             continue
         # sub-consensus matrix for this cluster
         sub = Consensus[np.ix_(clusID, clusID)]
-        iCAPs_consensus[iC - 1] = np.mean(sub)
-        iCAPs_nItems[iC - 1] = clusID.size
+        iCAPs_consensus[iC] = np.mean(sub)
+        iCAPs_nItems[iC] = clusID.size
 
     return iCAPs_consensus, iCAPs_nItems
+
+

@@ -4,7 +4,7 @@ import nibabel as nib
 from scipy.io import loadmat
 
 
-def saveRegionTable(param, iCAPs_z, final_mask):
+def save_region_tables(param, iCAPs_z, final_mask):
     """Python translation of saveRegionTables.m
 
     Writes a region-wise table for each iCAP based on an atlas and a codeBook.

@@ -58,4 +58,4 @@ def RemoveNan(Innovation, param, fid):
             f"There are {n_removed} voxels that have been removed because of being NaN after TA..."
         )
 
-    return Innovation2, mask_out
+    return Innovation2, mask_out, mask2

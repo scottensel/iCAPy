@@ -24,7 +24,14 @@ def sol_dct(in_data, TR, TS):
     # dct = np.column_stack([dct, linear_trend])
     # Calculate DCT coefficients and detrend the data
     # c_dct = np.linalg.solve(dct.T @ dct, dct.T @ in_data)  # if (dct.T @ dct) is square & well-conditioned
-    c_dct = np.linalg.pinv(dct).dot(in_data)
+
+    # c_dct = np.linalg.pinv(dct).dot(in_data)
+    try:
+        # Match MATLAB: (D' D) \ (D' y)
+        c_dct = np.linalg.solve(dct.T @ dct, dct.T @ in_data)
+    except np.linalg.LinAlgError:
+        # Fallback for rank-deficient / ill-conditioned cases
+        c_dct = np.linalg.lstsq(dct, in_data, rcond=None)[0]
 
     dct_sol = in_data - dct.dot(c_dct)
 

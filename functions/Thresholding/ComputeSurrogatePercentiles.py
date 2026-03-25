@@ -28,7 +28,7 @@ def ComputeSurrogatePercentiles(I, param, fid):
 
     # In MATLAB: PC = prctile(I, param.alpha);
     # which returns a (len(alpha) x n_ret_vox) matrix when I is (n_tp x n_ret_vox).
-    PC = np.percentile(I, alpha, axis=0)
+    PC = np.percentile(I, alpha, axis=0, method="hazen")
 
     # Ensure shape is (2, n_ret_vox) even if alpha is given as list-like
     if PC.ndim == 1:

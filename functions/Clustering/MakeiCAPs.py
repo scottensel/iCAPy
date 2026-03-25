@@ -1,116 +1,196 @@
+import os
+import platform
 import numpy as np
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
+from threadpoolctl import threadpool_limits
+
 from functions.Utilities.WriteInformation import write_information
-from .ZScore_iCAPs import ZScore_iCAPs
+from .ZScore_iCAPs import zscore_icaps
+from .Cosine_Kmeans import cosine_kmeans
 
 
-def MakeiCAPs(Frames, param, fid=None):
-    """Python approximation of MakeiCAPs.m
-
-    Performs k-means clustering of selected frames into iCAPs, with multiple
-    folds and Hungarian matching across folds.
-
-    Parameters
-    ----------
-    Frames : ndarray, shape (n_frames, n_vox)
-        Data matrix of frames to cluster.
-    param : dict-like
-        Must contain:
-        - 'K' : number of clusters
-        - 'DistType' : 'sqeuclidean' or 'cosine'
-        - 'n_folds' : number of folds
-        - 'save_cluster_dist' : bool, whether to keep per-fold distances
-        - 'outDir_iCAPs' : output directory (not heavily used here)
-    fid : file handle or str or None
-        For logging.
-
-    Returns
-    -------
-    iCAPs : ndarray, shape (K, n_vox)
-        Final cluster centroids.
-    IDX : ndarray, shape (n_frames,)
-        Cluster labels (1..K).
-    dist_to_centroid : ndarray or list
-        Distances of each frame to each centroid.
-    iCAPs_folds : dict
-        Per-fold clustering results.
+def _run_one_fold(Frames, K, DistType, n_init, max_iter, limit_threads):
     """
-    Frames = np.asarray(Frames)
-    n_frames, n_vox = Frames.shape
-    K = int(param['K'])
-    DistType = param.get('DistType', 'sqeuclidean')
-    n_folds = int(param.get('n_folds', 1))
-    save_cluster_dist = bool(param.get('save_cluster_dist', False))
+    Run a single k-means replicate and return labels, centers, full
+    distance matrix, and per-cluster sum of distances.
+    """
+    if DistType == "cosine":
+        labels0, centers, _ = cosine_kmeans(
+            Frames,
+            n_clusters=K,
+            n_init=n_init,
+            max_iter=max_iter if max_iter is not None else 100,
+            random_state=None,
+        )
+        # Build distance matrix: normalise both Frames and centers first,
+        # matching MATLAB's distfun which renormalises centroids each call
+        X_normed = Frames / np.maximum(
+            np.linalg.norm(Frames, axis=1, keepdims=True), np.finfo(float).eps
+        )
+        C_normed = centers / np.maximum(
+            np.linalg.norm(centers, axis=1, keepdims=True), np.finfo(float).eps
+        )
+        D = cdist(X_normed, C_normed, metric="cosine")
 
-    # Pre-normalization for cosine distance
-    if DistType == 'cosine':
-        norm = np.linalg.norm(Frames, axis=1, keepdims=True)
-        norm[norm == 0] = 1.0
-        Frames_km = Frames / norm
     else:
-        Frames_km = Frames
+        if platform.system() == "Windows" and limit_threads is not None:
+            with threadpool_limits(limits=limit_threads):
+                km = KMeans(n_clusters=K, n_init=n_init, random_state=None) \
+                     if max_iter is None else \
+                     KMeans(n_clusters=K, n_init=n_init, max_iter=max_iter, random_state=None)
+                labels0 = km.fit_predict(Frames).astype(np.int64)
+        else:
+            km = KMeans(n_clusters=K, n_init=n_init, random_state=None) \
+                 if max_iter is None else \
+                 KMeans(n_clusters=K, n_init=n_init, max_iter=max_iter, random_state=None)
+            labels0 = km.fit_predict(Frames).astype(np.int64)
 
-    all_iCAPs = []
-    all_IDX = []
-    all_sum_dist = []
-    all_dist_to_centroid = []
-
-    # Run k-means for each fold independently
-    for iFold in range(n_folds):
-        km = KMeans(n_clusters=K, n_init=10, random_state=None)
-        labels = km.fit_predict(Frames_km) + 1  # 1..K
         centers = km.cluster_centers_
+        De = cdist(Frames, centers, metric="euclidean")
+        D  = De * De if DistType == "sqeuclidean" else De
 
-        # distances of each frame to its centroid
-        dists = cdist(Frames_km, centers, metric='euclidean')
-        min_dists = np.min(dists, axis=1)
+    labels0  = labels0.astype(np.int64)
+    assigned = D[np.arange(D.shape[0]), labels0]
+    sum_dist = np.bincount(labels0, weights=assigned, minlength=K).astype(np.float64)
 
-        all_iCAPs.append(centers)
-        all_IDX.append(labels)
-        all_sum_dist.append(np.bincount(labels, weights=min_dists, minlength=K + 1)[1:])
-        all_dist_to_centroid.append(dists)
+    return labels0, centers, D, sum_dist
 
-    # Match clusters across folds to first fold using Hungarian algorithm
-    iCAPs_ref = all_iCAPs[0]
+
+def make_icaps(Frames, param, fid=None):
+    """
+    Python port of MakeiCAPs.m.  IDX is 0-based (0..K-1) throughout.
+
+    Branch 1 (default): saveClusterReplicateData missing or false
+        Single kmeans call with Replicates=n_folds.
+        Returns iCAPs, IDX, dist_to_centroid; iCAPs_folds=[].
+
+    Branch 2: saveClusterReplicateData true
+        Runs n_folds replicates independently (Replicates=1 each).
+        Hungarian-matches folds 2..n_folds to fold 1.
+        Selects the best fold by minimum total sum of distances.
+        Returns iCAPs_folds dict with all fold data.
+    """
+    out_dir = param.get("outDir_iCAPs", None)
+    if out_dir is not None and not os.path.isdir(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
+
+    Frames    = np.asarray(Frames, dtype=np.float64)
+    K         = int(param["K"])
+    DistType  = param.get("DistType", "sqeuclidean")
+    n_folds   = int(param.get("n_folds", 1))
+    limit_threads = param.get("limitThreads", None)
+    max_iter  = int(param["MaxIter"]) if "MaxIter" in param else None
+    save_reps = bool(param.get("saveClusterReplicateData", False))
+
+    # ------------------------------------------------------------------
+    # Branch 1: default  (MATLAB: single kmeans call, Replicates=n_folds)
+    # ------------------------------------------------------------------
+    if not save_reps:
+        IDX, iCAPs, dist_to_centroid, _ = _run_one_fold(
+            Frames, K, DistType,
+            n_init=n_folds, max_iter=max_iter,
+            limit_threads=limit_threads,
+        )
+
+        if fid is not None:
+            write_information(
+                fid,
+                f"iCAPs computed for {K} clusters, {n_folds} folds "
+                f"and with distance {DistType}..."
+            )
+
+        return iCAPs, IDX, dist_to_centroid, []
+
+    # ------------------------------------------------------------------
+    # Branch 2: saveClusterReplicateData=True  (loop, Replicates=1 each)
+    # ------------------------------------------------------------------
+    IDX_list              = [None] * n_folds
+    iCAPs_list            = [None] * n_folds
+    sum_dist_list         = [None] * n_folds
+    dist_to_centroid_list = [None] * n_folds
+
+    for iFold in range(n_folds):
+        if fid is not None:
+            write_information(fid, str(iFold + 1))
+
+        labels0, centers, D, sum_dist = _run_one_fold(
+            Frames, K, DistType,
+            n_init=1, max_iter=max_iter,
+            limit_threads=limit_threads,
+        )
+
+        IDX_list[iFold]              = labels0
+        iCAPs_list[iFold]            = centers
+        sum_dist_list[iFold]         = sum_dist
+        dist_to_centroid_list[iFold] = D
+
+    # Match all folds to fold 1 (Hungarian algorithm)
     for iFold in range(1, n_folds):
-        cost = cdist(iCAPs_ref, all_iCAPs[iFold],
-                     metric='cosine' if DistType == 'cosine' else 'euclidean')
-        row_ind, col_ind = linear_sum_assignment(cost)
-        # Reorder fold iFold according to mapping
-        perm = np.argsort(col_ind)
-        all_iCAPs[iFold] = all_iCAPs[iFold][perm, :]
-        all_sum_dist[iFold] = all_sum_dist[iFold][perm]
-        all_dist_to_centroid[iFold] = all_dist_to_centroid[iFold][:, perm]
+        if DistType == "cosine":
+            ref_normed  = iCAPs_list[0] / np.maximum(
+                np.linalg.norm(iCAPs_list[0], axis=1, keepdims=True), np.finfo(float).eps
+            )
+            fold_normed = iCAPs_list[iFold] / np.maximum(
+                np.linalg.norm(iCAPs_list[iFold], axis=1, keepdims=True), np.finfo(float).eps
+            )
+            dist_between_folds = cdist(ref_normed, fold_normed, metric="cosine")
+        else:
+            dist_between_folds = cdist(iCAPs_list[0], iCAPs_list[iFold], metric="sqeuclidean")
 
-        # Remap labels
-        labels_fold = all_IDX[iFold]
-        new_labels = np.zeros_like(labels_fold)
-        for new_k, old_k in enumerate(perm, start=1):
-            new_labels[labels_fold == (old_k + 1)] = new_k
-        all_IDX[iFold] = new_labels
+        row_ind, col_ind = linear_sum_assignment(dist_between_folds)
+        indexhun = np.empty(K, dtype=np.int64)
+        indexhun[row_ind.astype(np.int64)] = col_ind.astype(np.int64)
 
-    # Build iCAPs_folds structure
+        IDX_new              = np.empty_like(IDX_list[iFold])
+        iCAPs_new            = np.empty_like(iCAPs_list[iFold])
+        sum_dist_new         = np.empty_like(sum_dist_list[iFold])
+        dist_to_centroid_new = np.empty_like(dist_to_centroid_list[iFold])
+
+        for iC in range(K):
+            matched                         = indexhun[iC]
+            IDX_new[IDX_list[iFold] == matched] = iC
+            iCAPs_new[iC, :]                = iCAPs_list[iFold][matched, :]
+            sum_dist_new[iC]                = sum_dist_list[iFold][matched]
+            dist_to_centroid_new[:, iC]     = dist_to_centroid_list[iFold][:, matched]
+
+        IDX_list[iFold]              = IDX_new
+        iCAPs_list[iFold]            = iCAPs_new
+        sum_dist_list[iFold]         = sum_dist_new
+        dist_to_centroid_list[iFold] = dist_to_centroid_new
+
+    # Build iCAPs_folds dict
     iCAPs_folds = {
-        'iCAPs': all_iCAPs,
-        'IDX': all_IDX,
-        'sum_dist': all_sum_dist,
-        'dist_to_centroid': all_dist_to_centroid,
-        'iCAPs_z': [ZScore_iCAPs(c) for c in all_iCAPs],
+        "iCAPs":            iCAPs_list,
+        "IDX":              IDX_list,
+        "sum_dist":         sum_dist_list,
+        "dist_to_centroid": dist_to_centroid_list,
     }
 
-    # Select best fold by minimal total distance
-    total_dist = np.array([np.sum(sd) for sd in all_sum_dist])
-    bestID = int(np.argmin(total_dist))
-    iCAPs = all_iCAPs[bestID]
-    IDX = all_IDX[bestID]
-    dist_to_centroid = all_dist_to_centroid[bestID]
+    # Select best fold and compute z-scored maps
+    total_dist_sum = np.zeros(n_folds, dtype=np.float64)
+    iCAPs_z_list   = [None] * n_folds
+
+    for iFold in range(n_folds):
+        total_dist_sum[iFold] = float(np.sum(iCAPs_folds["sum_dist"][iFold]))
+        iCAPs_z_list[iFold]   = zscore_icaps(
+            iCAPs_folds["iCAPs"][iFold], [], iCAPs_folds["IDX"][iFold]
+        )
+
+    iCAPs_folds["total_dist_sum"] = total_dist_sum
+    iCAPs_folds["iCAPs_z"]        = iCAPs_z_list
+
+    bestID           = int(np.argmin(total_dist_sum))
+    iCAPs            = iCAPs_list[bestID]
+    IDX              = IDX_list[bestID]
+    dist_to_centroid = dist_to_centroid_list[bestID]
 
     if fid is not None:
         write_information(
             fid,
-            f"iCAPs computed for {K} clusters, {n_folds} folds and with distance {DistType}..."
+            f"iCAPs computed for {K} clusters, {n_folds} folds "
+            f"and with distance {DistType}..."
         )
 
     return iCAPs, IDX, dist_to_centroid, iCAPs_folds
