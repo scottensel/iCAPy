@@ -5,14 +5,14 @@ import pickle
 
 import numpy as np
 
-from functions.Utilities.WriteInformation import write_information
-from functions.Utilities.check_iCAPs_files import check_icaps_files
-from functions.Regression.GenerateTimeCourses import generate_time_courses
-from functions.Regression.GenerateTimeCoursesWeighted import generate_time_courses_weighted
-from functions.Regression.Load_ClusteringResults import load_clustering_results
-from functions.Regression.computeTemporalCharacteristics import compute_temporal_characteristics
-from functions.Regression.evaluateSoftClusterThres import evaluate_soft_cluster_thres
-from functions.Regression.evaluateSoftClusterThres_corrs import evaluate_soft_cluster_thres_corrs
+from functions.n00_Utilities.WriteInformation import write_information
+from functions.n00_Utilities.check_iCAPs_files import check_icaps_files
+from functions.n04_Regression.GenerateTimeCourses import generate_time_courses
+from functions.n04_Regression.GenerateTimeCoursesWeighted import generate_time_courses_weighted
+from functions.n04_Regression.Load_ClusteringResults import load_clustering_results
+from functions.n04_Regression.computeTemporalCharacteristics import compute_temporal_characteristics
+from functions.n04_Regression.evaluateSoftClusterThres import evaluate_soft_cluster_thres
+from functions.n04_Regression.evaluateSoftClusterThres_corrs import evaluate_soft_cluster_thres_corrs
 
 def _fmt_xi(x: float) -> str:
     """

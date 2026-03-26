@@ -3,12 +3,12 @@ import os
 
 def add_paths():
     base_paths = [
-        'functions/Utilities',
-        'functions/00_Preprocessing',
-        'functions/TotalActivation',
-        'functions/02_Thresholding',
-        'functions/03_Clustering',
-        'functions/04_Regression',
+        'functions/n00_Utilities',
+        'functions/n00_Preprocessing',
+        'functions/n01_TotalActivation',
+        'functions/n02_Thresholding',
+        'functions/n03_Clustering',
+        'functions/n04_Regression',
 
         'input_scripts',
     ]

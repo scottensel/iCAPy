@@ -6,17 +6,17 @@ import h5py
 import numpy as np  # kept in case other code uses it
 import os
 
-from functions.Utilities.WriteInformation import write_information
-from functions.Utilities.save4Dnii import save4dnii
-from functions.Utilities.check_iCAPs_files import check_icaps_files
-from functions.Clustering.AggregateSubjectFrames import aggregate_subject_frames
-from functions.Clustering.ConsensusClustering import consensus_clustering
-from functions.Clustering.MakeiCAPs import make_icaps
-from functions.Clustering.ReorderiCAPs import reorder_icaps
-from functions.Clustering.ZScore_iCAPs import zscore_icaps
-from functions.Clustering.saveSubjectMaps import save_subject_maps
-from functions.Clustering.saveRegionTables import save_region_tables
-from functions.Clustering.getClusterConsensus import get_cluster_consensus
+from functions.n00_Utilities.WriteInformation import write_information
+from functions.n00_Utilities.save4Dnii import save4dnii
+from functions.n00_Utilities.check_iCAPs_files import check_icaps_files
+from functions.n03_Clustering.AggregateSubjectFrames import aggregate_subject_frames
+from functions.n03_Clustering.ConsensusClustering import consensus_clustering
+from functions.n03_Clustering.MakeiCAPs import make_icaps
+from functions.n03_Clustering.ReorderiCAPs import reorder_icaps
+from functions.n03_Clustering.ZScore_iCAPs import zscore_icaps
+from functions.n03_Clustering.saveSubjectMaps import save_subject_maps
+from functions.n03_Clustering.saveRegionTables import save_region_tables
+from functions.n03_Clustering.getClusterConsensus import get_cluster_consensus
 
 
 def run_clustering(param):

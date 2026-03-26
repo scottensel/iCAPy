@@ -3,12 +3,12 @@ import copy
 import pickle
 from datetime import datetime
 
-from functions.Utilities.WriteInformation import write_information
-from functions.Utilities.check_ta_files import check_ta_files
-from functions.Thresholding.RemoveNan import RemoveNan
-from functions.Thresholding.ComputeSurrogatePercentiles import ComputeSurrogatePercentiles
-from functions.Thresholding.SelectSignificantFrames import SelectSignificantFrames
-from functions.Utilities.save4Dnii import save4dnii
+from functions.n00_Utilities.WriteInformation import write_information
+from functions.n00_Utilities.check_ta_files import check_ta_files
+from functions.n02_Thresholding.RemoveNan import RemoveNan
+from functions.n02_Thresholding.ComputeSurrogatePercentiles import ComputeSurrogatePercentiles
+from functions.n02_Thresholding.SelectSignificantFrames import SelectSignificantFrames
+from functions.n00_Utilities.save4Dnii import save4dnii
 
 import h5py
 import numpy as np

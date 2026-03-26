@@ -1,19 +1,19 @@
 import os
 import numpy as np
 from datetime import datetime
-from functions.Utilities.WriteInformation import write_information
-from functions.Utilities.check_ta_files import check_ta_files
-from functions.Utilities.ReadTAData import read_ta_data
-from functions.Utilities.CreateTAMask import create_ta_mask
-from functions.Utilities.CreateTAData import create_ta_data
-from functions.Preprocessing.AssessMotion import assess_motion
-from functions.Preprocessing.InterpolateTimeCourses import interpolate_time_courses
-from functions.Preprocessing.DetrendTimeCourses import detrend_time_courses
-from functions.TotalActivation.Temporal_TA.hrf_filters import hrf_filters
-from functions.TotalActivation.RunTotalActivation import run_total_activation
-from functions.TotalActivation.Generate_Innovations import generate_innovations
-from functions.TotalActivation.GenerateSurrogate import generate_surrogate
-from functions.Utilities.save4Dnii import save4dnii
+from functions.n00_Utilities.WriteInformation import write_information
+from functions.n00_Utilities.check_ta_files import check_ta_files
+from functions.n00_Utilities.ReadTAData import read_ta_data
+from functions.n00_Utilities.CreateTAMask import create_ta_mask
+from functions.n00_Utilities.CreateTAData import create_ta_data
+from functions.n00_Preprocessing.AssessMotion import assess_motion
+from functions.n00_Preprocessing.InterpolateTimeCourses import interpolate_time_courses
+from functions.n00_Preprocessing.DetrendTimeCourses import detrend_time_courses
+from functions.n01_TotalActivation.Temporal_TA.hrf_filters import hrf_filters
+from functions.n01_TotalActivation.RunTotalActivation import run_total_activation
+from functions.n01_TotalActivation.Generate_Innovations import generate_innovations
+from functions.n01_TotalActivation.GenerateSurrogate import generate_surrogate
+from functions.n00_Utilities.save4Dnii import save4dnii
 import time
 import os
 import pickle
