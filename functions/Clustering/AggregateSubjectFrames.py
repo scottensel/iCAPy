@@ -26,11 +26,11 @@ def aggregate_subject_frames(Paths, param, fid):
     AI : ndarray, shape (n_frames_AI, n_final_ret_vox)
         Concatenated activity-inducing signals (masked by final_mask).
     subject_labels : ndarray, shape (n_frames,)
-        Subject index (1-based, like MATLAB) for each frame in I_sig.
+        Subject index (0-based) for each frame in I_sig.
     time_labels : ndarray, shape (n_frames,)
         Time index (within subject) for each frame in I_sig.
     AI_subject_labels : ndarray, shape (n_frames_AI,)
-        Subject index (1-based) for each frame in AI.
+        Subject index (0-based) for each frame in AI.
     final_mask : ndarray, shape (n_vox,)
         Boolean mask of voxels present in all subjects (intersection of mask_nonan).
     """

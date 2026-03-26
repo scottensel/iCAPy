@@ -3,6 +3,7 @@ from input_scripts.Inputs_TimeCourses_data import setup_timecourses_data_params
 from input_scripts.Inputs_TimeCourses import setup_timecourses_params
 from functions.Run_TimeCourse import run_regression  # you will implement this
 
+import pickle
 
 def main():
     # Data-related params

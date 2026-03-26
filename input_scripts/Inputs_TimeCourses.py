@@ -19,12 +19,12 @@ def setup_timecourses_params():
     # Type of regression:
     #   'unconstrained' or 'transient-informed' (recommended)
     param["regType"] = "transient-informed"
-    # param["regType"] = "unconstrained"
 
     # parameter for soft cluster assignment in transient-informed regression
     # MATLAB: param.softClusterThres = [1:0.2:2];
     # That is: 1, 1.2, ..., 2.0
-    param["softClusterThres"] = np.linspace(1.0, 1.4, 5).tolist()
+    param["softClusterThres"] = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+
 
     # Evaluate amplitude correlations as part of soft cluster factor evaluation
     param["evalAmplitudeCorrs"] = 1

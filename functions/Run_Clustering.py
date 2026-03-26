@@ -177,13 +177,13 @@ def run_clustering(param):
                 AI_subject_labels = pickle.load(f)
 
 
-    with h5py.File(os.path.join("F:/iCAP/Data/Matlab/Ketamine/Khali/iCAPs_results/test3_Alpha_5_950DOT05/I_sig.mat"), "r") as f:
-        I_sig = np.array(f["I_sig"])
-    I_sig = I_sig.T
-
-    with h5py.File(os.path.join("F:/iCAP/Data/Matlab/Ketamine/Khali/iCAPs_results/test3_Alpha_5_950DOT05/AI.mat"), "r") as f:
-        AI = np.array(f["AI"])
-    AI = AI.T
+    # with h5py.File(os.path.join("F:/iCAP/Data/Matlab/Ketamine/Khali/iCAPs_results/test3_Alpha_5_950DOT05/I_sig.mat"), "r") as f:
+    #     I_sig = np.array(f["I_sig"])
+    # I_sig = I_sig.T
+    #
+    # with h5py.File(os.path.join("F:/iCAP/Data/Matlab/Ketamine/Khali/iCAPs_results/test3_Alpha_5_950DOT05/AI.mat"), "r") as f:
+    #     AI = np.array(f["AI"])
+    # AI = AI.T
 
 
     # Adapt K + iCAPs titles for multiple K
