@@ -1,7 +1,11 @@
 import sys
 import os
 
+# This function adds all the useful paths to the python environment for
+# the application of iCAP routines
 def add_paths():
+
+    # path towards toolbox functions
     base_paths = [
         'functions/n00_Utilities',
         'functions/n00_Preprocessing',

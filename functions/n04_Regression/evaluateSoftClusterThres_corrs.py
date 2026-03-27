@@ -9,8 +9,6 @@ from functions.n04_Regression.getIDXmat import getIDXmat
 
 def evaluate_soft_cluster_thres_corrs(clustering_results, TC, param, fid=None):
     """
-    MATLAB-faithful port of evaluateSoftClusterThres_corrs.m
-
     All subject/cluster indices are 0-based. Time indices (t, time_labels)
     are 1-based (frame 1 = first frame) and converted to 0-based only when
     indexing into arrays.
@@ -27,7 +25,7 @@ def evaluate_soft_cluster_thres_corrs(clustering_results, TC, param, fid=None):
 
     nSub = int(param["n_subjects"])
 
-    # MATLAB: AI = clusteringResults.AI'  => (nVox, nTP_all)
+    # (nVox, nTP_all)
     AI = np.asarray(clustering_results["AI"])
     if AI.ndim != 2:
         raise ValueError("clustering_results['AI'] must be 2D.")
@@ -59,7 +57,7 @@ def evaluate_soft_cluster_thres_corrs(clustering_results, TC, param, fid=None):
         clus_weights[:, :, iT] = clos_to_centroid
 
     # ------------------------------------------------------------------
-    # Normalised innovations  (MATLAB: Activity_inducing_norm, innovations_norm)
+    # Normalised innovations  ( Activity_inducing_norm, innovations_norm)
     # Both are (nVox, nTP_all), 0-based subject labels
     # ------------------------------------------------------------------
     if fid is not None:
@@ -82,7 +80,7 @@ def evaluate_soft_cluster_thres_corrs(clustering_results, TC, param, fid=None):
 
         Activity_inducing_norm[:, vols_iS] = AI_norm_iS
 
-        # MATLAB: [zeros(nVox,1), diff(AI_norm_iS, 1, 2)]
+        #[zeros(nVox,1), diff(AI_norm_iS, 1, 2)]
         innovations_norm[:, vols_iS] = np.concatenate(
             [np.zeros((nVox, 1)), np.diff(AI_norm_iS, axis=1)], axis=1
         )
@@ -127,7 +125,7 @@ def evaluate_soft_cluster_thres_corrs(clustering_results, TC, param, fid=None):
             if (t - 1) >= innovSub.shape[1]:
                 continue
 
-            # MATLAB: TC{iT}{iS}(:,t) - TC{iT}{iS}(:,t-1)  (1-based t)
+            # TC{iT}{iS}(:,t) - TC{iT}{iS}(:,t-1)  (1-based t)
             # => 0-based: TC_iS[:, t-1] - TC_iS[:, t-2]
             TC_change_tmp = TC_iS[:, t - 1] - TC_iS[:, t - 2]
 

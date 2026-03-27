@@ -5,8 +5,6 @@ from functions.n00_Utilities.WriteInformation import write_information
 
 def generate_time_courses(Activity_inducing, AI_subject_labels, iCAPs, param, fid=None):
     """
-    Python equivalent of GenerateTimeCourses.m.
-
     For each timepoint, runs two bounded optimisations matching MATLAB's fmincon:
       - positive part: lb=0,    ub=Inf   (non-negative contributions)
       - negative part: lb=-Inf, ub=0     (non-positive contributions)

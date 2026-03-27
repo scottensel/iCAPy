@@ -1,9 +1,7 @@
 import numpy as np
 
-
 def getIDXmat(dist_to_centroid, softClusterThres):
-    """Best-effort Python translation of getIDXmat.m
-
+    """
     Given a matrix of distances from each item to each centroid, constructs
     a soft cluster assignment matrix based on a threshold.
 

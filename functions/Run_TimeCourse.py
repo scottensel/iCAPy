@@ -14,11 +14,64 @@ from functions.n04_Regression.computeTemporalCharacteristics import compute_temp
 from functions.n04_Regression.evaluateSoftClusterThres import evaluate_soft_cluster_thres
 from functions.n04_Regression.evaluateSoftClusterThres_corrs import evaluate_soft_cluster_thres_corrs
 
+"""
+# This function runs regression to obtain iCAPs time courses.
+# Regression can either be done 'unconstrained' or with
+# 'transient-informed' constraints.
+#
+# Input:
+#   param - dict containing all necessary parameters to run TA
+#
+#     * Data reading and saving information:
+#       'PathData'        - path to data
+#       'Subjects'        - list of subdirectories where each subject's
+#                           fMRI data is stored; must contain one entry per
+#                           subject to analyze.
+#                           This is where the TA folder will be created
+#                           (or looked for) for each subject.
+#       'n_subjects'      - number of subjects to analyze
+#       'title'           - possibility to define a title for the current
+#                           project (useful if TA should be run for
+#                           different parameters), default: current date;
+#                           should be the title of the project for which
+#                           TA has already been run
+#       ['force_Regression'] - if set to 1, regression will be forced to
+#                           run, even if already has been done
+#       ['thresh_title']  - information to read thresholding data and save
+#                           regression results; if not specified, the
+#                           fields 'alpha' and 'f_voxels' need to exist
+#                           in param
+#       ['data_title']    - information for saving of regression results
+#       ['iCAPs_title']   - string or list of strings with all the
+#                           subfolders to create for saving regression
+#                           results
+#
+#     * Regression information:
+#       ['saveClusterReplicateData'] - specify if the result of each
+#                           replicate should be saved during clustering,
+#                           default = 0
+#       'n_folds'         - number of replicates of clustering
+#       'K'               - number of clusters; can be a single int or a
+#                           list of multiple K values
+#       'DistType'        - type of distance to use for k-means clustering
+#                           ('sqeuclidean' or 'cosine')
+#       ['MaxIter']       - maximum number of allowed iterations of k-means
+#                           clustering; the default of 100 is sometimes not
+#                           enough if many frames are included,
+#                           default = 100
+#
+# Output:
+#   Saves regression results (time courses, model statistics, temporal
+#   characteristics) into the iCAPs output folder for each K value.
+"""
 def _fmt_xi(x: float) -> str:
     """
     Format softClusterThres values for folder names:
     - if it's an integer (e.g., 1.0) -> "1"
     - otherwise trim floating noise (e.g., 0.199999999999 -> "0.1" or "0.2" depending on rounding)
+
+    don't think this is needed anymore . . .
+    soft thresholding is now just a list of the numbers
     """
     # Round to a reasonable precision to kill binary float artifacts
     x = float(np.round(x, 6))
@@ -33,9 +86,6 @@ def _fmt_xi(x: float) -> str:
 
 
 def run_regression(param):
-    """
-    Python equivalent of Run_Regression.m, using pickle (.pkl) for all saving/loading.
-    """
 
     # Date and time
     param["date"] = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -110,6 +160,7 @@ def run_regression(param):
     if not (param.get("doRegression") is False):
         write_information(fid, "Entering the time course retrieval process...")
 
+        # for every K
         for i_k, title_k in enumerate(param["iCAPs_title_cell"]):
             param["iCAPs_title"] = title_k
             param["K"] = param["K_vect"][i_k]
@@ -124,6 +175,7 @@ def run_regression(param):
             aggregating_done = result[0]
             clustering_done = result[1]
 
+            # check if clustering has been run
             if not aggregating_done:
                 fid.close()
                 raise RuntimeError("Run clustering first (aggregation missing).")
@@ -195,13 +247,6 @@ def run_regression(param):
             # Transient-informed regression
             # ==============================================================
             elif reg_type == "transient-informed":
-                diffs = np.diff(param["softClusterThres"])
-                mean_diff = float(np.mean(diffs))
-                # label = (
-                #     f"TCs_{param['softClusterThres'][0]}_"
-                #     f"{mean_diff}_"
-                #     f"{param['softClusterThres'][-1]}"
-                # ).replace(".", "DOT")
 
                 diffs = np.diff(param["softClusterThres"])
                 mean_diff = float(np.mean(diffs))
@@ -212,18 +257,13 @@ def run_regression(param):
 
                 label = f"TCs_{start}_{step}_{end}".replace(".", "DOT")
 
-                # start = str(param["softClusterThres"][0])
-                # step = str(np.mean(np.diff(param["softClusterThres"])))
-                # end = str(param["softClusterThres"][-1])
-                #
-                # label = f"TCs_{start}_{step}_{end}".replace(".", "DOT")
-
                 param["outDir_reg"] = os.path.join(param["outDir_iCAPs"], label)
                 os.makedirs(param["outDir_reg"], exist_ok=True)
 
                 result = check_icaps_files(None, None, None, param["outDir_reg"])
                 regression_done = result[3]
 
+                # force regression
                 if param.get("force_Regression"):
                     regression_done = 0
 
@@ -267,6 +307,7 @@ def run_regression(param):
                             clustering_results, TC_list, param, fid
                         )
 
+                    # plot BIC and AIC
                     best_id = evaluate_soft_cluster_thres(
                         TC_stats_list, param, fid
                     )

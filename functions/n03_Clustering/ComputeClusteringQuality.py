@@ -4,8 +4,6 @@ from functions.n03_Clustering.jUpperTriMatToVec import jUpperTriMatToVec
 
 def ComputeClusteringQuality(Consensus, K):
     """
-    MATLAB-faithful version of ComputeClusteringQuality.m
-
     Parameters
     ----------
     Consensus : ndarray, shape (n_items, n_items)

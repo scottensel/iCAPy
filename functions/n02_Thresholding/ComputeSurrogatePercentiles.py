@@ -4,7 +4,6 @@ from functions.n00_Utilities.WriteInformation import write_information
 
 def ComputeSurrogatePercentiles(I, param, fid):
     """
-    Python translation of ComputeSurrogatePercentiles.m
 
     Parameters
     ----------
@@ -22,6 +21,7 @@ def ComputeSurrogatePercentiles(I, param, fid):
     PC : ndarray, shape (2, n_ret_vox)
         PC[0, :] is the lower percentile, PC[1, :] the upper percentile
         for each voxel.
+
     """
     I = np.asarray(I)
     alpha = np.asarray(param['alpha'])

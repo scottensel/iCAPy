@@ -3,8 +3,6 @@ from scipy import ndimage
 
 def check_interconnectedness(data2d, param):
     """
-    Python translation of MATLAB check_interconnectedness.m
-
     Parameters
     ----------
     data2d : ndarray, shape (n_tp, n_ret_vox)

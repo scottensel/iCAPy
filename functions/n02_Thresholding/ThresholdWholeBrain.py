@@ -3,8 +3,6 @@ import numpy as np
 
 def ThresholdWholeBrain(mask1, n_voxels):
     """
-    Python translation of ThresholdWholeBrain.m
-
     Determines the time points that exhibit whole-brain significant
     excursions in terms of innovation signal.
 

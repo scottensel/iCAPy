@@ -12,10 +12,54 @@ from functions.n03_Clustering.ComputeClusteringQuality import ComputeClusteringQ
 from functions.n03_Clustering.MakeiCAPs import _run_one_fold
 
 
+"""
+Performs consensus clustering over a range of K values.
+The goal is to provide a measure of how good each value of K is.
+
+Inputs:
+    X                  - data matrix (n_items x n_dimensions)
+    subject_labels     - assignment of every item in X to a subject;
+                         only needed when Subsample_type = 'subjects'
+    param              - dict containing necessary parameters:
+        'K_vect'             - list of K values to examine
+        'cons_n_folds'       - number of folds over which to run
+        'n_folds'            - number of replicates per fold
+        'DistType'           - distance type for k-means clustering
+        'Subsample_type'     - defines how subsampling is done:
+                                 'items'    - subsample data points
+                                              without taking into account
+                                              within- or between-subject
+                                              information
+                                 'subjects' - subsample all frames from
+                                              a subject
+        'Subsample_fraction' - fraction of original data points to keep
+                               per fold
+        ['MaxIter']          - maximum k-means iterations, default = 100
+        'outDir_cons'        - output directory for consensus results
+        ['force_ConsensusClustering'] - if set to 1, forces recomputation
+                               even if results already exist
+
+Outputs:
+    Saves the following results for every K in the consensus subfolder:
+        Consensus_{K}.pkl         - unordered consensus matrix
+                                    (n_items x n_items)
+        Consensus_ordered_{K}.pkl - consensus matrix reordered by optimal
+                                    leaf ordering (n_items x n_items)
+        Consensus_ordered_{K}.png - image of the ordered consensus matrix
+        CDF.pkl                   - cumulative distribution functions
+        AUC.pkl                   - area under CDF curves
+        CDF.svg / CDF.png         - CDF plot across K values
+        AUC.svg / AUC.png         - AUC plot across K values
+
+14.06.2017 - Daniela: created based on Thomas' version, added subject
+             subsampling, changed outputs to structs
+29.05.2018 - Daniela: changed data saving, updated
+             Build_Connectivity_Matrix, removed dimensions sampling
+"""
+
+
 def consensus_clustering(X, subject_labels, param, fid=None):
-    """
-    Faithful Python port of MATLAB ConsensusClustering.m
-    """
+
     K_range            = np.asarray(param["K_vect"], dtype=int)
     n_folds            = int(param["cons_n_folds"])
     n_rep              = int(param["n_folds"])

@@ -1,9 +1,7 @@
-# input_scripts/Inputs_Clustering.py
-
+# Clustering related information
+####################################################
 def setup_clustering_params():
     """
-    Python equivalent of Inputs_Clustering.m.
-
     Returns
     -------
     param : dict
@@ -45,13 +43,21 @@ def setup_clustering_params():
     # Number of folds (repeats) of the clustering
     param["n_folds"] = 10
 
-    # Save subject-specific maps & region tables
+    # Specificy if the result of each replicate should be saved during clustering
     param["saveClusterReplicateData"] = 0
+
+    # Maximum number of allowed iterations of the kmeans clustering
+    # default is 100 and is sometimes not enough if many frames are included,
     param["MaxIter"] = 300
 
+    # save subject specific maps
     param["saveSubjectMaps"] = 1
     param["force_saveSubjectMaps"] = 1
 
+    # save iCAP region tables
+    ###########################################################
+    # this section not tested or updated so may not work properly
+    ###########################################################
     param["saveRegionTables"] = 0
     param["regTab_thres"] = 1.5  # z-score threshold
     param["regTab_codeBook"] = "AALcodeBook.mat"
@@ -61,7 +67,6 @@ def setup_clustering_params():
     k_list = param["K"]
     dist = param["DistType"]
     n_folds = param["n_folds"]
-
     iCAPs_title_list = [
         f"K_{k}_Dist_{dist}_Folds_{n_folds}" for k in k_list
     ]
@@ -72,10 +77,17 @@ def setup_clustering_params():
 
     # Consensus clustering parameters
     # -------------------------------------------------------
+    # if consesus clustering should be run or not
     param["doConsensusClustering"] = 1
+
+    # Consensus clustering forced to run or not
+    # it will not remake the Consenus matrix but will rerun the ordering
+    # if you need a fresh Consensus delete the consesnus file and it will rerun
     param["force_ConsensusClustering"] = 1
 
-    # 'items' to subsample frames regardless of subject boundaries
+    # subsample type:
+    # 'subjects' to subsample all frames from a subject
+    # 'items' to subsample frames without taking into account within- or between-subject information
     param["Subsample_type"] = "items"
     param["Subsample_fraction"] = 0.8
     param["cons_n_folds"] = 20
@@ -93,6 +105,7 @@ def setup_clustering_params():
     param["cons_title"] = cons_title
 
     # flag to indicate that cluster consensus should be computed
+    # consensus clustering and clustering must be run for this to computation to run
     param["computeClusterStability"] = 1
 
     return param

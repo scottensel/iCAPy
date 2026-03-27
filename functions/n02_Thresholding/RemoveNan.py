@@ -4,8 +4,6 @@ from functions.n00_Utilities.WriteInformation import write_information
 
 def RemoveNan(Innovation, param, fid):
     """
-    Python translation of RemoveNan.m
-
     This function removes NaN time courses from the innovation matrix and
     updates the voxel mask accordingly.
 

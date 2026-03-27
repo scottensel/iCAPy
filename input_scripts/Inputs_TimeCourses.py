@@ -1,11 +1,8 @@
-# input_scripts/Inputs_TimeCourses.py
-import numpy as np
-
+# Regression related information
+####################################################
 
 def setup_timecourses_params():
     """
-    Python equivalent of Inputs_TimeCourses.m.
-
     Returns
     -------
     param : dict

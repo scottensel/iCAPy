@@ -1,13 +1,11 @@
-# Inputs_TimeCourses_Data_OpenfMRI.py
-
+# Regression related information
+####################################################
 def setup_timecourses_data_params():
     """
-    Python equivalent of Inputs_TimeCourses_Data_OpenfMRI.m
-
     Returns
     -------
     param : dict
-        Data- and iCAP-related parameters for time-course regression (OpenfMRI example).
+        Data- and iCAP-related parameters for time-course regression
     """
     param = {}
 
@@ -21,7 +19,6 @@ def setup_timecourses_data_params():
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     # List of subjects on which to run total activation
-    # (cell array in MATLAB → list in Python)
     param["Subjects"] = ["run5_20130209", "run5_20130308", "run7_20130322"]
 
     # Number of subjects considered
@@ -42,6 +39,8 @@ def setup_timecourses_data_params():
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     # Alpha-levels for lower/upper innovation thresholds (percentiles)
+    # first element is percentile of lower threshold - negative innovations
+    # second element is percentile of upper threshold - positive innovations
     param["alpha"] = [5, 95]
 
     # Fraction of voxels from the ones entering total activation for a given
@@ -65,10 +64,11 @@ def setup_timecourses_data_params():
     # information about the iCAPs clustering for which regression should be done
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    # Number of iCAPs
-    param["K"] = 3  # scalar in the MATLAB file
+    # Number of iCAPs (can be a range)
+    param["K"] = 3
 
-    # Distance Type for the K-means clustering (in MATLAB they choose between 'sqeuclidean' and 'cosine')
+    # Distance Type for the K-means clustering
+    # (choose between 'sqeuclidean' and 'cosine')
     param["DistType"] = "cosine"
 
     # Number of times the clustering process is run in a row to extract iCAPs

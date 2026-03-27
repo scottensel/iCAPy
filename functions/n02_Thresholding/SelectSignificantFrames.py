@@ -45,8 +45,6 @@ def SelectSignificantFrames(Innovation, param, fid):
     # (-1 for negative excursion, 0 for no excursion, +1 for positive excursion)
     param['mask_threshold1'] = ThresholdTimeCourse(Innovation, np.asarray(param['PC']))
 
-    # Optionally: the MATLAB code contains commented logging here; we skip it.
-
     # 2) Spatial thresholding: how many voxels must show significance at once
     n_tp, n_ret_vox = Innovation.shape
     f_voxels = float(param['f_voxels'])

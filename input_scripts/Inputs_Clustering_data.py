@@ -1,18 +1,17 @@
-# Inputs_Clustering_data.py
-
+# Clustering related information
+####################################################
 def setup_clustering_data_params():
     """
-    Python equivalent of Inputs_Clustering_Data_OpenfMRI.m
-
     Returns
     -------
     param : dict
-        Data- and thresholding-related parameters for clustering (OpenfMRI).
+        Data- and thresholding-related parameters for clustering.
     """
     param = {}
 
     # General data information
     # ------------------------
+    # path where data is stored
     param["PathData"] = 'F:/iCAP/Data/Python/Ketamine/Khali'
 
     # Links towards the data of all subjects to analyze
@@ -21,11 +20,15 @@ def setup_clustering_data_params():
     param["n_subjects"] = len(param["Subjects"])
 
     # Title for this run (must match the title used for TA/thresholding)
+    # This is for this specific run of the scripts and it from prior steps
+    # to now build on that information
     param["title"] = "test3"
 
     # Thresholding-related information (used when selecting frames for iCAPs)
     # -----------------------------------------------------------------------
     # Alpha-levels for lower/upper innovation thresholds (percentiles)
+    # first element is percentile of lower threshold - negative innovations
+    # second element is percentile of upper threshold - positive innovations
     param["alpha"] = [5, 95]
 
     # Fraction of voxels that must show innovation at the same time point
@@ -36,6 +39,7 @@ def setup_clustering_data_params():
     alpha_high_str = str(param["alpha"][1]).replace(".", "DOT")
     f_voxels_str = str(param["f_voxels"]).replace(".", "DOT")
 
+    # title used to create folder where thresholding is saved
     param["thresh_title"] = (
         "Alpha_"
         + alpha_low_str

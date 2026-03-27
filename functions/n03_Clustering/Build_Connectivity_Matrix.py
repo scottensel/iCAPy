@@ -2,8 +2,7 @@ import numpy as np
 
 
 def Build_Connectivity_Matrix(IDX, tmp_ss, type, n_items):
-    """Python translation of Build_Connectivity_Matrix.m
-
+    """
     Constructs a connectivity matrix from cluster assignment indices.
 
     Parameters

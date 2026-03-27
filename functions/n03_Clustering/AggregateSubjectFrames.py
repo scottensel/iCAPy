@@ -5,8 +5,7 @@ from functions.n00_Utilities.WriteInformation import write_information
 
 
 def aggregate_subject_frames(Paths, param, fid):
-    """Python translation of AggregateSubjectFrames.m using dense arrays.
-
+    """
     Combines frames from multiple subjects into a single matrix for clustering.
 
     Parameters
@@ -33,6 +32,8 @@ def aggregate_subject_frames(Paths, param, fid):
         Subject index (0-based) for each frame in AI.
     final_mask : ndarray, shape (n_vox,)
         Boolean mask of voxels present in all subjects (intersection of mask_nonan).
+
+    12.6.2018 - YF/DZ modified for different frame numbers in subjects
     """
     nSub = len(Paths)
 

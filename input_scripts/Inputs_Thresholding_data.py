@@ -1,13 +1,11 @@
-# Inputs_Thresholding_Data_OpenfMRI.py
-
+# Thresholding related information
+####################################################
 def setup_thresholding_data_params():
     """
-    Python equivalent of Inputs_Thresholding_Data_OpenfMRI.m
-
     Returns
     -------
     param : dict
-        Data-related parameters for the thresholding step (OpenfMRI example).
+        Data-related parameters for the thresholding step.
     """
     param = {}
 
@@ -21,7 +19,7 @@ def setup_thresholding_data_params():
     # Links towards the data of all subjects to analyze
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    # List of subjects on which to run total activation (cell array in MATLAB → list in Python)
+    # List of subjects on which you ran total activation on
     # This is where the TA folder will be created (or looked for) for each subject
     param["Subjects"] = ["run5_20130209", "run5_20130308", "run7_20130322"]
 

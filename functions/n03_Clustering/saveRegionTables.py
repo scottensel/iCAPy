@@ -38,6 +38,7 @@ def save_region_tables(param, iCAPs_z, final_mask):
     # Read atlas
     atlas_img = nib.load(param['regTab_atlasFile'])
     atlas_vol = atlas_img.get_fdata()
+
     # Reshape atlas to 1D for masked voxels
     atlas_1d = atlas_vol.reshape(-1, order='F')
     final_mask = np.asarray(final_mask).astype(bool)

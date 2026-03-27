@@ -1,10 +1,8 @@
 import numpy as np
 
-
 def get_cluster_consensus(IDX, Consensus):
-    """Python translation of getClusterConsensus.m
-
-    Computes the average consensus within each cluster.
+    """
+    Computes the average consensus within each cluster. (m(k) in Monti et al.,2003)
 
     Parameters
     ----------

@@ -37,8 +37,6 @@ def _knee_pt(y, x):
 
 def evaluate_soft_cluster_thres(TC_stats, param, fid=None):
     """
-    Python equivalent of MATLAB evaluateSoftClusterThres.m
-
     Parameters
     ----------
     TC_stats : list
@@ -100,7 +98,7 @@ def evaluate_soft_cluster_thres(TC_stats, param, fid=None):
     best_id_bic = int(knee_idx_bic)  # 0-based for Python
 
     # Plot: Sum of BIC
-    fig = plt.figure(figsize=(3.85, 3.3))  # roughly MATLAB's small figure
+    fig = plt.figure(figsize=(3.85, 3.3))
     ax = fig.add_subplot(111)
     ax.plot(thresVals, bic_sum, "*")
     ax.plot(thresVals[knee_idx_bic], bic_sum[knee_idx_bic], "*r")

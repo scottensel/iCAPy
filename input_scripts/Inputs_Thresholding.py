@@ -1,9 +1,7 @@
-# input_scripts/Inputs_Thresholding.py
-
+# Thresholding related information
+####################################################
 def setup_thresholding_params():
     """
-    Python equivalent of Inputs_Thresholding.m.
-
     Returns
     -------
     param : dict
@@ -15,19 +13,16 @@ def setup_thresholding_params():
     param["force_Thresholding"] = 1
 
     # Alpha-levels for lower/upper innovation thresholds (percentiles)
-    # MATLAB: param.alpha = [5 95];
+    # first element is percentile of lower threshold - negative innovations
+    # second element is percentile of upper threshold - positive innovations
     param["alpha"] = [5, 95]
 
-    # Fraction of voxels that must show innovation at the same time point
-    # MATLAB: param.f_voxels = 5/100;
+    # Fraction of voxels from the ones entering total activation for a given
+    # subject that should show an innovation at the same time point, so that
+    # the corresponding frame is retained for iCAPs clustering
     param["f_voxels"] = 5.0 / 100.0
 
-    # Title string used to label thresholding results
-    # MATLAB roughly:
-    # param.thresh_title = ['Alpha_',strrep(num2str(param.alpha(1)),'.','DOT'),'_',...]
-    # alpha_low = str(param["alpha"][0]).replace(".", "DOT")
-    # alpha_high = str(param["alpha"][1]).replace(".", "DOT")
-    # param["thresh_title"] = f"Alpha_{alpha_low}_{alpha_high}"
+    # Title string used to label thresholding results and folder where it will be saved
     param["thresh_title"] = (
             "Alpha_"
             + str(param["alpha"][0]).replace(".", "DOT")
@@ -37,8 +32,10 @@ def setup_thresholding_params():
             + str(param["f_voxels"]).replace(".", "DOT")
     )
 
-    # Parameters for checking spatially interconnected frames
+    # Number of neighbours that must also show an innovation for a voxel to be retained
     param["threshold_minclussize"] = 6
+
+    # Number of neighbors to consider in the process
     param["threshold_interconnectivity"] = 26
 
     return param

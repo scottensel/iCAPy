@@ -1,5 +1,91 @@
 import numpy as np
 
+"""
+Computes temporal characteristics of iCAPs time courses.
+Occurrences of only one frame will not be counted.
+
+Input:
+    TC                - list of length nSubjects; each element is a
+                        (nClus x nTP) array of time courses per iCAP
+    clusteringResults - dict with clustering results containing:
+                          'AI_subject_labels'
+                          'subject_labels'
+                          'IDX'
+                          ['scrub_labels'] - only needed if
+                              param['excludeMotionFrames'] = 1
+    param             - dict with necessary fields:
+                          'activityThres' - threshold at which normalized
+                              time courses will be considered "active",
+                              default = 1
+
+Output:
+    tempChar - dict containing fields with temporal characteristics
+
+      * Characteristics of significant innovations:
+        'innov_counts_total'       - number of all significant innovations
+                                     per subject
+        'innov_counts_total_perc'  - percentage of significant innovations
+                                     in all included time points
+        'innov_counts'             - (nClus x nSub) number of significant
+                                     innovations per iCAP per subject
+        'innov_counts_percOfInnov' - (nClus x nSub) percentage of
+                                     innovations in this iCAP in all
+                                     significant innovations
+
+      * Thresholded time courses and overall characteristics
+        (lists of length nSubjects):
+        'TC_norm_thes'         - normalized and thresholded time courses,
+                                 with occurrences of only one frame removed
+        'TC_active'            - activity information: 1 if positive
+                                 activity, -1 if negative, 0 if none
+        'coactiveiCAPs_total'  - (1 x nTP_subject) number of active iCAPs
+                                 per timepoint
+        'coactivation'         - (nClus x nClus x nTP_subject) coactivation
+                                 between every two iCAPs
+
+      * Temporal characteristics of activity blocks
+        (nClus x nSub arrays):
+        'occurrences'               - number of activity blocks in
+                                      thresholded time courses per cluster
+                                      per subject
+        'occurrences_pos'           - number of positive activity blocks
+        'occurrences_neg'           - number of negative activity blocks
+
+        'duration_total_counts'     - number of active timepoints per
+                                      cluster per subject
+        'duration_total_pos_counts' - number of positively active timepoints
+        'duration_total_neg_counts' - number of negatively active timepoints
+
+        'duration_total_perc'       - total duration of iCAP as percentage
+                                      of whole scan duration
+        'duration_total_pos_perc'   - total positive duration as percentage
+                                      of whole scan duration
+        'duration_total_neg_perc'   - total negative duration as percentage
+                                      of whole scan duration
+
+        'duration_avg_counts'       - average duration of activity blocks
+                                      (number of timepoints)
+        'duration_avg_pos_counts'   - average duration of positive activity
+                                      blocks (number of timepoints)
+        'duration_avg_neg_counts'   - average duration of negative activity
+                                      blocks (number of timepoints)
+
+      * Co-activation characteristics (nClus x nClus x nSub arrays):
+        'coupling_counts'           - coupling duration (number of
+                                      timepoints)
+        'coupling_jacc'             - coupling duration as percentage of
+                                      total duration of both iCAPs
+        'coupling_sameSign'         - same-signed coupling duration
+                                      (number of timepoints)
+        'coupling_diffSign'         - differently-signed coupling duration
+                                      (number of timepoints)
+        'coupling_sameSign_jacc'    - same-signed coupling duration as
+                                      percentage of total duration of both
+                                      iCAPs
+        'coupling_diffSign_jacc'    - differently-signed coupling duration
+                                      as percentage of total duration of
+                                      both iCAPs
+"""
 
 def _bwconncomp_1d(tc_row):
     """1D analogue of MATLAB bwconncomp for a single time course row.
@@ -106,40 +192,7 @@ def _getCompSign(activeComp, tc_row):
 
 
 def compute_temporal_characteristics(TC, clusteringResults, param):
-    """Python translation of computeTemporalCharacteristics.m
 
-    Computes temporal characteristics of iCAPs time courses.
-
-    Parameters
-    ----------
-    TC : list-like
-        Length nSub; each element is a 2D array of shape (nClus, nTP_sub).
-    clusteringResults : dict-like
-        Must contain:
-        - 'AI_subject_labels'
-        - 'subject_labels'
-        - 'IDX'
-        Optional:
-        - 'scrub_labels'
-    param : dict-like
-        Must contain:
-        - 'activityThres'
-        Optional:
-        - 'excludeMotionFromTC'
-
-    Returns
-    -------
-    tempChar : dict
-        Dictionary mirroring the MATLAB tempChar structure, with fields:
-        - scrub_labels (list of arrays)
-        - nTP_sub (array)
-        - innov_counts_total, innov_counts_total_perc
-        - innov_counts, innov_counts_percOfInnov
-        - TC_norm_thes, TC_active, coactiveiCAPs_total
-        - occurrences, occurrences_pos, occurrences_neg
-        - duration_* counts and percentages
-        - coupling_* measures across subjects and clusters
-    """
     # Helper to access fields from dict or object
     def _get(obj, name, default=None):
         if isinstance(obj, dict):
@@ -347,7 +400,6 @@ def compute_temporal_characteristics(TC, clusteringResults, param):
                 )
 
             # innovation counts for this iCAP / subject
-            # mask_ic = (IDX == (iC + 1)) & (subject_labels == subj_idx)
             mask_ic = (IDX == iC) & (subject_labels == subj_idx)
             innov_counts_ic = int(np.count_nonzero(mask_ic))
             tempChar["innov_counts"][iC, iS] = innov_counts_ic
@@ -414,6 +466,8 @@ def compute_temporal_characteristics(TC, clusteringResults, param):
                     tempChar["coupling_sameSign_jacc"][iC, iC2, iS] = np.nan
                     tempChar["coupling_diffSign_jacc"][iC, iC2, iS] = np.nan
 
+                # percentage of signed co-activation with iCAP iC2, with
+                # respect to total positive or negative activation of both iCAPs
                 if coupling_count > 0:
                     tempChar["coupling_sameSign_perc"][iC, iC2, iS] = (
                         sameSign_count / float(coupling_count) * 100.0
@@ -445,7 +499,7 @@ def compute_temporal_characteristics(TC, clusteringResults, param):
         tempChar["coupling_negPos_counts"][iS] = negPos_iS
         tempChar["coupling_negNeg_counts"][iS] = negNeg_iS
 
-    # remove NaNs in duration_avg_* as in MATLAB
+    # remove NaNs in duration_avg_*
     for key in ["duration_avg_counts", "duration_avg_pos_counts", "duration_avg_neg_counts"]:
         arr = tempChar[key]
         arr[np.isnan(arr)] = 0.0

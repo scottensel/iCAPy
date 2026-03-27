@@ -4,13 +4,70 @@ from functions.n00_Utilities.WriteInformation import write_information
 from functions.n04_Regression.getIDXmat import getIDXmat
 
 
-def generate_time_courses_weighted(clusteringResults, param, fid=None):
-    """
-    Faithful Python translation of GenerateTimeCoursesWeighted.m.
+"""
+Computes the time courses of activity for all assessed iCAPs using
+spatio-temporal regression. This is an alternative to the unconstrained
+approach — it uses the information of significant innovations to construct
+the design matrix.
 
-    Spatio-temporal regression using significant innovation frames to
-    construct a piecewise-constant design matrix per iCAP per subject.
-    """
+Inputs:
+    clusteringResults - dict containing the necessary input data:
+        'iCAPs'           - iCAPs maps resulting from k-means clustering
+                            (n_iCAPs x n_voxels)
+        'AI'              - activity-inducing signals
+                            (n_voxels x (n_subj * n_TP)) matrix of
+                            concatenated subject activity-inducing data
+        'IDX'             - clustering information of significant
+                            innovation frames (n_significant_innov,)
+        'time_labels'     - timing information of significant innovation
+                            frames (n_significant_innov,)
+        'subject_labels'  - subject information of significant innovation
+                            frames (n_significant_innov,)
+        ['dist_to_centroid'] - (n_significant_innov x n_iCAPs) matrix of
+                            distances from all significant innovation
+                            frames to all cluster centroids (iCAPs)
+
+        For regression with a soft assignment factor, one of the following
+        is required:
+        ['dist_to_centroid'] - as described above
+        ['iCAPs_folds']   - information on all clustering folds, used to
+                            retrieve distances to cluster centers:
+                              'sum_dist' - total sum of distances from all
+                                  frames to their corresponding cluster
+                                  centers
+                              'dist_to_centroid' - matrix containing
+                                  distances to all cluster centers for
+                                  every frame
+
+    param - dict containing necessary parameters:
+        'n_subjects'         - number of subjects
+        ['softClusterThres'] - soft assignment factor; should be larger
+                               than 1 (1.1 to 1.25 are good values; for
+                               parameter optimization run
+                               evaluateSoftClusterThres). If not set or
+                               empty, hard clustering will be used for
+                               back-projection.
+        ['excludeMotionFrames'] - select whether motion frames should be
+                               excluded from the regression (if scrubbing)
+        ['n_folds']          - required if distances should be taken from
+                               clusteringResults['iCAPs_folds']
+
+Outputs:
+    TC    - list of length nSubjects; each element is a
+            (nClus x nTP_subject) array of time courses
+    stats - dict containing model fitting statistics per subject:
+              'RSS' - residual sum of squares
+              'n'   - number of observations
+              'k'   - number of regressors
+              'bic' - Bayesian information criterion
+              'aic' - Akaike information criterion
+
+v2.0 DZ 27.10.2017 - added compatibility with scrubbed data
+v2.0 DZ 29.05.2018 - removed compatibility with scrubbed data and
+                     updated for finalized toolbox
+"""
+
+def generate_time_courses_weighted(clusteringResults, param, fid=None):
 
     # --------------------------------------------------
     # Unpack inputs

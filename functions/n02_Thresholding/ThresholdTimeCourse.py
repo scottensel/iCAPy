@@ -3,8 +3,6 @@ import numpy as np
 
 def ThresholdTimeCourse(S, T):
     """
-    Python translation of ThresholdTimeCourse.m
-
     Determines the moments of an innovation time course that are significant
     from comparison to threshold values.
 

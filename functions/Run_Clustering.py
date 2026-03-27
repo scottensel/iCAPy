@@ -1,9 +1,6 @@
-import os
 from datetime import datetime
 import pickle  # using pickle for all saves/loads here
 import h5py
-
-import numpy as np  # kept in case other code uses it
 import os
 
 from functions.n00_Utilities.WriteInformation import write_information
@@ -18,11 +15,77 @@ from functions.n03_Clustering.saveSubjectMaps import save_subject_maps
 from functions.n03_Clustering.saveRegionTables import save_region_tables
 from functions.n03_Clustering.getClusterConsensus import get_cluster_consensus
 
-
+"""
+# This function runs clustering on the significant innovations found
+# previously by thresholding; results will be the iCAPs maps
+#
+# Input:
+#   param - dict containing all necessary parameters to run TA
+#
+#     * Data reading and saving information:
+#       'PathData'       - path to data
+#       'Subjects'       - list of subdirectories where each subject's
+#                          fMRI data is stored; must contain one entry per
+#                          subject to analyze.
+#                          This is where the TA folder will be created
+#                          (or looked for) for each subject.
+#       'n_subjects'     - number of subjects to analyze
+#       'title'          - possibility to define a title for the current
+#                          project (useful if TA should be run for
+#                          different parameters), default: current date;
+#                          should be the title of the project for which
+#                          TA has already been run
+#       ['force_Aggregating']  - if set to 1, significant innovations and
+#                          activity-inducing signal will be read and
+#                          aggregated, even if this has been done before
+#       ['force_Clustering']   - if set to 1, clustering will be forced to
+#                          run, even if already has been done
+#       ['thresh_title']  - information to read thresholding data and save
+#                          clustering results; if not specified, the fields
+#                          'alpha' and 'f_voxels' need to exist in param
+#       ['data_title']    - information for saving of aggregated clustering
+#                          data
+#       ['iCAPs_title']   - string or list of strings with all the
+#                          subfolders to create for saving clustering
+#                          results
+#
+#     * Clustering information:
+#       ['doClustering']  - specify if clustering should be done (set to 0
+#                          to only run consensus clustering), default = 1
+#       ['saveClusterReplicateData'] - specify if the result of each
+#                          replicate should be saved during clustering,
+#                          default = 0
+#       'n_folds'         - number of replicates of clustering
+#       'K'               - number of clusters; can be a single int or a
+#                          list of multiple K values
+#       'DistType'        - type of distance to use for k-means clustering
+#                          ('sqeuclidean' or 'cosine')
+#       ['MaxIter']       - maximum number of allowed iterations of k-means
+#                          clustering; the default of 100 is sometimes not
+#                          enough if many frames are included, default = 100
+#
+#     * Consensus clustering information:
+#       ['doConsensusClustering']    - specify if consensus clustering
+#                          should be done on top of the clustering above
+#       ['force_ConsensusClustering'] - if set to 1, consensus clustering
+#                          will be forced to run, even if already done
+#       'Subsample_type'  - subsampling type for consensus clustering
+#                          (default: 'items')
+#                          'subjects' to subsample all frames from a
+#                              subject
+#                          'items' to subsample frames without taking into
+#                              account within- or between-subject
+#                              information
+#       'Subsample_fraction' - fraction of subsampled data per fold
+#       'cons_n_folds'    - number of folds for consensus clustering
+#                          (clustering will be run with 'n_folds'
+#                          replicates in each consensus clustering fold)
+#       ['cons_title']    - subfolder in which to save consensus results
+#
+# Output:
+#   Creates iCAPs maps and consensus clustering results
+"""
 def run_clustering(param):
-    """
-    Python equivalent of Run_Clustering.m, using pickle (.pkl) for saving/loading.
-    """
 
     # Date and time when the routines are called
     param["date"] = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -153,6 +216,8 @@ def run_clustering(param):
             )
 
         else:
+
+            # if aggregration already done and not forced load data
             write_information(
                 fid, "Aggregating already done, loading aggregated data..."
             )
@@ -177,15 +242,6 @@ def run_clustering(param):
                 AI_subject_labels = pickle.load(f)
 
 
-    # with h5py.File(os.path.join("F:/iCAP/Data/Matlab/Ketamine/Khali/iCAPs_results/test3_Alpha_5_950DOT05/I_sig.mat"), "r") as f:
-    #     I_sig = np.array(f["I_sig"])
-    # I_sig = I_sig.T
-    #
-    # with h5py.File(os.path.join("F:/iCAP/Data/Matlab/Ketamine/Khali/iCAPs_results/test3_Alpha_5_950DOT05/AI.mat"), "r") as f:
-    #     AI = np.array(f["AI"])
-    # AI = AI.T
-
-
     # Adapt K + iCAPs titles for multiple K
     if isinstance(param["iCAPs_title"], (list, tuple)):
         param["iCAPs_title_cell"] = list(param["iCAPs_title"])
@@ -197,7 +253,7 @@ def run_clustering(param):
     )
 
     # ----------------------------------------------------------------------
-    # MAIN CLUSTERING PROCEDURE NOW
+    # MAIN CLUSTERING PROCEDURES NOW
     # ----------------------------------------------------------------------
 
     # ----------------------------------------------------------------------
@@ -205,6 +261,8 @@ def run_clustering(param):
     # ----------------------------------------------------------------------
     if do_consensus:
         if not param.get("cons_title"):
+
+            # setting name of folder
             k_vec = param["K_vect"]
             param["cons_title"] = (
                 f"{k_vec[0]}to{k_vec[-1]}"
@@ -228,16 +286,17 @@ def run_clustering(param):
         if param.get("force_ConsensusClustering"):
             consensus_done = 0
         else:
-            # Check if consesnus has been done if not forced
+            # Check if consensus has been done if not forced
             result = check_icaps_files(
                 None, None, param["outDir_cons"]
             )
             consensus_done = result[2]
 
         if not consensus_done:
+            # run consenus clustering
             consensus_clustering(I_sig, subject_labels, param, fid)
 
-            # Save param as pickle instead of .mat
+            # Save param as pickle
             with open(os.path.join(param["outDir_cons"], "param.pkl"), "wb") as f:
                 pickle.dump(param, f)
 
@@ -247,6 +306,8 @@ def run_clustering(param):
     # ----------------------------------------------------------------------
     if do_clustering:
         write_information(fid, "Entering the clustering process...")
+
+        # clustering for every K
         for i_k, title_k in enumerate(param["iCAPs_title_cell"]):
             param["iCAPs_title"] = title_k
             param["K"] = param["K_vect"][i_k]
@@ -262,7 +323,7 @@ def run_clustering(param):
             if not os.path.isdir(param["outDir_iCAPs"]):
                 os.makedirs(param["outDir_iCAPs"])
 
-            # Check if consensus is forced
+            # Check if clustering is forced
             if param.get("force_Clustering"):
                 clustering_done = 0
             else:
@@ -282,6 +343,9 @@ def run_clustering(param):
                 # Reorder iCAPs by innovation counts
                 write_information(fid, "Rearranging Time Courses...")
 
+                # Dani: I replaced this by a function which just re-orders
+                # the iCAPs (i.e. iCAPs numbering according to innovation
+                # frame counts), but without changing the order in the Data
                 idx, icaps, icaps_folds = reorder_icaps(idx, icaps, icaps_folds)
 
                 # z-score iCAPs
@@ -334,7 +398,7 @@ def run_clustering(param):
             else:
                 write_information(fid, "Clustering already done, skipping...")
 
-            # Subject maps
+            # saving subject maps
             subj_maps_dir = os.path.join(param["outDir_iCAPs"], "subjectMaps")
             subj_maps_file = os.path.join(
                 subj_maps_dir, f"iCAP_z_{param['K']}.nii"
@@ -353,7 +417,7 @@ def run_clustering(param):
                 write_information(fid, "Saving subject maps...")
                 save_subject_maps(param, subject_labels, idx, I_sig, final_mask)
 
-            # Region tables
+            # Saving region tables
             reg_table_path = os.path.join(param["outDir_iCAPs"], "iCAP_z_regions.txt")
             reg_table_exist = os.path.isfile(reg_table_path)
 
@@ -369,10 +433,13 @@ def run_clustering(param):
     # ----------------------------------------------------------------------
     # Cluster stability based on consensus clustering
     # ----------------------------------------------------------------------
+    # compute cluster stability based on consensus clustering (clustering
+    # and consensus clustering have to be done already)
     if param.get("computeClusterStability"):
 
         write_information(fid, "Getting cluster consensus...")
 
+        # do it for every K listed
         for i_k, title_k in enumerate(param["iCAPs_title_cell"]):
             param["iCAPs_title"] = title_k
             param["K"] = param["K_vect"][i_k]

@@ -1,10 +1,7 @@
 import numpy as np
 
-
 def reorder_icaps(IDX, iCAPs, icaps_folds=None):
     """
-    Python translation of ReorderiCAPs.m, but with Python-native 0-based labels.
-
     Reorders clusters according to the number of frames per cluster.
 
     Parameters

@@ -4,9 +4,6 @@ import pickle
 
 def load_clustering_results(param):
     """
-    Python equivalent of Load_ClusteringResults.m
-    (pickle-only version)
-
     Loads clustering-related results (iCAPs, AI, labels, distances) from disk.
 
     Parameters
