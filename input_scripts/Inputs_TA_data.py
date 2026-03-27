@@ -24,7 +24,7 @@ def setup_data_params():
 
     # Title for this analysis session
     # this will be the title used in later steps of the iCAP pipeline
-    param['title'] = 'test3'
+    param['title'] = 'test'
 
     # run temporal regularization using parrlell process of CPU cores
     # I HIGHLY RECCOMEND setting equal to 1 as this is a substantial speed up
@@ -44,7 +44,7 @@ def setup_data_params():
     param['Folder_GM'] = ['T1','T1','T1']
 
     # common NAME of the gray matter map
-    param['TA_gm_prefix'] = ['rest_c2','rest_c2','rest_c2']
+    param['TA_gm_prefix'] = ['rest_c1','rest_c1','rest_c1']
 
     # Gray matter related information
     ###########################################################
