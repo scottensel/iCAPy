@@ -1,47 +1,62 @@
 import numpy as np
 from functions.n00_Utilities.WriteInformation import write_information
 
+
 def create_ta_data(fData, param, fid=None):
     """
-    Reshapes and filters fData based on param['mask'] to retain only
-    within-brain voxels for total activation analysis.
+    Creates a two-dimensional matrix containing the relevant data for
+    total activation, from 4D input data and a mask determining the
+    voxels to retain.
 
-    Parameters:
-    - fData: 4D numpy array of shape (X, Y, Z, T) with functional data.
-    - param: Dictionary containing TA parameters, including:
-        - 'mask': 1D boolean array with shape (X*Y*Z,) representing within-brain voxels.
-        - 'Dimension': 4-element tuple with dimensions of fData.
-    - fid: Optional file object for logging.
+    Inputs:
+        fData - (X x Y x Z x T) 4D array of functional data
+        param - dict containing TA parameters; must include:
+            'mask'      - 1D boolean array of length X*Y*Z with True for
+                          voxels to retain and False for out-of-brain or
+                          NaN voxels; populated by CreateTAMask
+            'Dimension' - 4-element list/array [X, Y, Z, T]
+        fid   - optional log file handle for write_information
 
-    Returns:
-    - fData_2D: 2D array with shape (retained_voxels, T) containing only selected voxel time courses.
-    - param: Updated param dictionary with indices of retained voxels.
+    Outputs:
+        fData_2D - (n_retained_voxels x T) 2D array with the time courses
+                   of the retained voxels only
+        param    - updated dict with the following fields added:
+            'IND'       - 1D array of linear indices of the retained voxels
+                          in the flattened (column-major) volume
+            'VoxelIdx'  - (n_retained_voxels x 3) array with the 3D
+                          coordinates [x, y, z] of each retained voxel
+            'NbrVoxels' - int, number of retained voxels
     """
-    num_voxels = np.sum(param['mask'])
+    num_voxels     = int(np.sum(param['mask']))
     num_timepoints = param['Dimension'][3]
+
+    # Initialise output matrix with NaN (same as MATLAB's nan(...) call)
     fData_2D = np.full((num_voxels, num_timepoints), np.nan)
 
-    for t in range(param['Dimension'][3]):
-        tmp = fData[:, :, :, t]  # 3D volume at time t
-        # tmp = np.reshape(tmp , (-1, 1), order='F')
-        tmp = np.ravel(tmp, order='F')
+    # Extract the masked voxels at each time point using column-major
+    # (Fortran) order to match MATLAB's memory layout
+    for t in range(num_timepoints):
+        tmp          = fData[:, :, :, t]
+        tmp          = np.ravel(tmp, order='F')
         fData_2D[:, t] = tmp[param['mask']]
 
-    # fData_flat = fData.reshape(-1, num_timepoints)  # Shape: (X*Y*Z, T)
-    # fData_2D = fData_flat[param['mask'], :]  # Apply mask to retain within-brain voxels only
-
-    # Store indices of retained elements in param
+    # Find the linear indices of the retained voxels (1D, column-major)
     param['IND'] = np.where(param['mask'])[0]
 
-    # param['VoxelIdx'] = np.column_stack(np.unravel_index(param['IND'], param['Dimension'][:3]))
-    param['VoxelIdx'] = np.column_stack(np.unravel_index(param['IND'], param['Dimension'][:3], order='F')).astype(int)
+    # Derive the 3D coordinates of those elements: VoxelIdx has shape
+    # (n_retained_voxels x 3), matching MATLAB's ind2sub output
+    param['VoxelIdx'] = np.column_stack(
+        np.unravel_index(param['IND'], param['Dimension'][:3], order='F')
+    ).astype(int)
+
+    # Number of retained voxels
     param['NbrVoxels'] = fData_2D.shape[0]
 
-    # Log information if fid is provided
     if fid:
-        retained_voxels = np.sum(param['mask'])
-        total_voxels = np.prod(param['Dimension'][:3])
-        # fid.write(f"Keeping {retained_voxels} out of {total_voxels} voxels for TA...\n")
-        write_information(fid, f"Keeping {retained_voxels} out of {total_voxels} voxels for TA...")
+        total_voxels = int(np.prod(param['Dimension'][:3]))
+        write_information(
+            fid,
+            f"Keeping {num_voxels} out of {total_voxels} voxels for TA..."
+        )
 
     return fData_2D, param

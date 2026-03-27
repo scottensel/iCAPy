@@ -5,90 +5,88 @@ from functions.n01_TotalActivation.Spatial_TA.evaluate_3D_TV import evaluate_3D_
 from functions.n01_TotalActivation.Spatial_TA.MyProx import MyProx
 
 
-# def ta_spatial(y, param):
-#
-#     # Choose backend based on the 'cuda' flag
-#
-#     # Set default values if fields are missing in param
-#     # if 'NitSpat' not in param:
-#     #     param['NitSpat'] = 400
-#     # if 'LambdaSpat' not in param:
-#     #     param['LambdaSpat'] = 2
-#     # if 'Lip' not in param:
-#     #     param['Lip'] = 12
-#     # if 'tol' not in param:
-#     #     param['tol'] = 1e-6
-#     param.setdefault('NitSpat', 400)
-#     param.setdefault('LambdaSpat', 2)
-#     param.setdefault('Lip', 12)
-#     param.setdefault('tol', 1e-6)
-#
-#     # Verify the dimensionality of the input
-#     if len(param['Dimension']) != 4:
-#         raise ValueError("Dimension must have 4 elements.")
-#
-#     # Set weights if not provided
-#     if 'weight_x' not in param:
-#         param['weight_x'] = np.ones(param['Dimension'])
-#     if 'weight_y' not in param:
-#         param['weight_y'] = np.ones(param['Dimension'])
-#     if 'weight_z' not in param:
-#         param['weight_z'] = np.ones(param['Dimension'])
-#
-#     # Initialize the output for the spatial regularization problem
-#     x_out = np.zeros_like(y)
-#
-#     # Create a 4D volume based on VoxelIdx coordinates
-#     y_vol = np.zeros(param['Dimension'])
-#
-#
-#     for i in range(len(param['VoxelIdx'])):
-#         x1, y1, z1 = param['VoxelIdx'][i]
-#         y_vol[x1, y1, z1, :] = y[:, i]
-#
-#     # Define the gradient and adjoint operators with backend support
-#     Op = lambda x: gradient3D_full(x, param['weight_x'], param['weight_y'], param['weight_z'])
-#     Adj_Op = lambda u, v, w: -div3D_full(u, v, w, param['weight_x'], param['weight_y'], param['weight_z'])
-#     evaluate_norm = lambda y: evaluate_3D_TV(y)
-#
-#     # Apply the MyProx function to solve the TV regularization
-#     x_vol = MyProx(y_vol, Op, Adj_Op, evaluate_norm, param)
-#
-#     # Map the result from the 4D volume back to 2D output format
-#     for i in range(len(param['VoxelIdx'])):
-#         x, y, z = param['VoxelIdx'][i]
-#         x_out[:, i] = x_vol[x, y, z, :]
-#
-#     return x_out
-
-
 def ta_spatial(y, param):
-    # defaults
-    param.setdefault('NitSpat', 400)
-    param.setdefault('LambdaSpat', 2)
-    param.setdefault('Lip', 12)
-    param.setdefault('tol', 1e-6)
+    """
+    Computes the TV regularization:
+        F(x) = min ||y - x||^2 + lambda * ||TV{x}||_1
+    using the 3D extension of FISTA:
 
-    dim = param['Dimension']  # (X,Y,Z,T)
+        Beck, A., & Teboulle, M. (2009). A fast iterative
+        shrinkage-thresholding algorithm for linear inverse problems.
+        SIAM journal on imaging sciences, 2(1), 183-202.
+
+    Inputs:
+        y     - (n_time_points x n_ret_voxels) 2D matrix of data input
+                to the spatial regularization
+        param - dict containing relevant TA parameters:
+            'NitSpat'    - int, number of iterations for spatial
+                           regularization; default 400
+            'LambdaSpat' - float, empirically tuned regularization
+                           coefficient; default 2
+            'Lip'        - float, Lipschitz constant of the gradient
+                           operator; default 12
+            'tol'        - float, tolerance threshold below which
+                           iterations stop; default 1e-6
+            'VoxelIdx'   - (n_ret_vox x 3) array of 3D coordinates of
+                           the retained voxels used in TA
+            'Dimension'  - 4-element list/array of X, Y, Z, T sizes
+            'weight_x'   - (X x Y x Z x T) spatial weight along X;
+                           set to ones if not provided
+            'weight_y'   - spatial weight along Y
+            'weight_z'   - spatial weight along Z
+
+    Outputs:
+        x_out - (n_time_points x n_ret_voxels) 2D matrix of spatially
+                regularized output
+
+    Implemented by Younes Farouj, 10.03.2016
+    """
+
+    # Set default parameter values if not provided
+    param.setdefault('NitSpat',    400)
+    param.setdefault('LambdaSpat', 2)
+    param.setdefault('Lip',        12)
+    param.setdefault('tol',        1e-6)
+
+    dim   = param['Dimension']   # (X, Y, Z, T)
+
+    # param['weight'] is 1 if neighbouring elements are from the same
+    # tissue type, and less than 1 otherwise
+    param.setdefault('weight_x', np.ones(dim))
+    param.setdefault('weight_y', np.ones(dim))
+    param.setdefault('weight_z', np.ones(dim))
+
+    # This is going to be the output of the spatial regularization problem
     x_out = np.zeros_like(y)
 
-    # Cache voxel indices as 3 int arrays (once)
+    # Cache voxel index arrays as integer index tuples (computed once)
     if 'VoxelIdx_xyz' not in param:
-        vox = np.asarray(param['VoxelIdx'], dtype=np.intp)  # (V,3)
+        vox = np.asarray(param['VoxelIdx'], dtype=np.intp)   # (V, 3)
         param['VoxelIdx_xyz'] = (vox[:, 0], vox[:, 1], vox[:, 2])
     xi, yi, zi = param['VoxelIdx_xyz']
 
-    # Build 4D volume without Python loop
-    y_vol = np.zeros(dim, dtype=y.dtype)
-    y_vol[xi, yi, zi, :] = y.T  # y is (T,V) so y.T is (V,T)
+    # Convert the 2D input (T x V) into a 4D volume (X x Y x Z x T) by
+    # placing each voxel's time course at its 3D coordinates
+    y_vol          = np.zeros(dim, dtype=y.dtype)
+    y_vol[xi, yi, zi, :] = y.T   # y is (T, V) so y.T is (V, T)
 
-    Op = lambda x: gradient3D_full(x, param['weight_x'], param['weight_y'], param['weight_z'])
-    Adj_Op = lambda u, v, w: -div3D_full(u, v, w, param['weight_x'], param['weight_y'], param['weight_z'])
+    # Gradient operator: Op(x) = gradient3D_full(x, wx, wy, wz)
+    Op = lambda x: gradient3D_full(
+        x, param['weight_x'], param['weight_y'], param['weight_z']
+    )
+
+    # Adjoint operator: minus divergence — <f, grad g> = -<div f, u>
+    Adj_Op = lambda u, v, w: -div3D_full(
+        u, v, w, param['weight_x'], param['weight_y'], param['weight_z']
+    )
+
+    # TV norm evaluator: evaluate_norm(y) = sum(||grad y||_2)
     evaluate_norm = lambda yy: evaluate_3D_TV(yy)
 
+    # Apply the proximal operator to solve the TV regularization problem
     x_vol = MyProx(y_vol, Op, Adj_Op, evaluate_norm, param)
 
-    # Map back without loop
+    # Map the regularized 4D volume back to the 2D output format
     x_out[:] = x_vol[xi, yi, zi, :].T
 
     return x_out
