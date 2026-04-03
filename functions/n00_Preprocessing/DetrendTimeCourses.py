@@ -24,23 +24,20 @@ def detrend_time_courses(TC, param, fid=None):
               normalised time courses
     """
     # Initialise output array
-    TCN    = np.zeros_like(TC)
-    TC_tmp = TC.T    # transpose to (n_time_points x n_voxels) for sol_dct
+    TCN = np.zeros_like(TC)
+    TC_tmp = TC.T
 
-    for i in range(param['NbrVoxels']):
+    if param.get('doDetrend', False):
+        for i in range(param['NbrVoxels']):
+            TCN[i, :], c_dct = sol_dct(TC_tmp[:, i], param['TR'], param['DCT_TS'])
+            TCN[i, :] /= np.std(TCN[i, :], ddof=1)
+        write_information(fid,
+                          f"Detrending and normalizing the data with DCT = {param['DCT_TS']} s and {len(param['Covariates'])} covariate(s)")
+    else:
+        # Normalisation only — no DCT detrending
+        for i in range(param['NbrVoxels']):
+            TCN[i, :] = TC_tmp[:, i] / np.std(TC_tmp[:, i], ddof=1)
+        write_information(fid, "Normalizing the data")
 
-        # Regress out low-frequency components using the DCT basis and
-        # any additional covariates specified in param
-        TCN[i, :], _ = sol_dct(TC_tmp[:, i], param['TR'], param['DCT_TS'],
-                                param.get('Covariates', None))
-
-        # Normalise to unit standard deviation (ddof=1 matches MATLAB's std)
-        TCN[i, :] /= np.std(TCN[i, :], ddof=1)
-
-    write_information(
-        fid,
-        f"Detrending and normalizing the data with DCT = "
-        f"{param['DCT_TS']} [s] and {len(param['Covariates'])} covariate(s)"
-    )
 
     return TCN

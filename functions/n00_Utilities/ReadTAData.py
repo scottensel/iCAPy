@@ -2,7 +2,47 @@ import os
 import re
 import nibabel as nib
 import numpy as np
+from scipy.ndimage import affine_transform
 from functions.n00_Utilities.WriteInformation import write_information
+
+
+def _reslice_to_functional(pData, pHeader, fHeader):
+    """
+    Resamples pData from GM (structural) space into functional space using
+    the affine transforms from pHeader and fHeader.
+
+    Equivalent to MATLAB's mapVTV(pData, pHeader, fHeader) call in
+    ReadTAData.m, but vectorised via scipy.ndimage.affine_transform rather
+    than looping voxel by voxel.
+
+    The transform maps each output (functional) voxel coordinate to the
+    corresponding input (structural) voxel coordinate:
+        input_vox = inv(p_affine) @ f_affine @ output_vox
+
+    Inputs:
+        pData   - (X x Y x Z) 3D array of GM map in structural resolution
+        pHeader - nibabel image object for the GM map
+        fHeader - nibabel image object for the functional data
+
+    Outputs:
+        pData_resliced - (X' x Y' x Z') 3D array resampled to functional
+                         resolution
+    """
+    p_affine = pHeader.affine
+    f_affine = fHeader.affine
+    out_shape = fHeader.shape[:3]
+
+    # Voxel-to-voxel transform: functional vox -> structural vox
+    M = np.linalg.inv(p_affine) @ f_affine
+
+    return affine_transform(
+        pData,
+        M[:3, :3],
+        offset=M[:3, 3],
+        output_shape=out_shape,
+        order=1,       # linear interpolation
+        mode='nearest' # clamp out-of-bounds to edge (matches mapVTV clamping)
+    )
 
 
 def read_ta_data(path, sidx, param, fid=None):
@@ -33,7 +73,8 @@ def read_ta_data(path, sidx, param, fid=None):
 
     Outputs:
         fData   - (X x Y x Z x T) 4D array of functional data
-        pData   - (X x Y x Z) 3D array of probabilistic GM map values
+        pData   - (X x Y x Z) 3D array of probabilistic GM map values,
+                  resampled to functional resolution if needed
         fHeader - nibabel image object for the functional data (first volume)
         pHeader - nibabel image object for the GM map
 
@@ -43,20 +84,25 @@ def read_ta_data(path, sidx, param, fid=None):
     """
     fData, pData, fHeader, pHeader = None, None, None, None
 
-    # Resolve per-subject fields: use the subject-specific entry if a list
-    # is provided, otherwise use the single shared value
-    folder_functional = (param['Folder_functional'][sidx]
-                         if isinstance(param['Folder_functional'], list)
-                         else param['Folder_functional'])
-    folder_gm         = (param['Folder_GM'][sidx]
-                         if isinstance(param['Folder_GM'], list)
-                         else param['Folder_GM'])
-    ta_func_prefix    = (param['TA_func_prefix'][sidx]
-                         if isinstance(param['TA_func_prefix'], list)
-                         else param['TA_func_prefix'])
-    ta_gm_prefix      = (param['TA_gm_prefix'][sidx]
-                         if isinstance(param['TA_gm_prefix'], list)
-                         else param['TA_gm_prefix'])
+    def _resolve(val, idx):
+        """
+        Returns the subject-specific value from val.
+        - If val is not a list: use it as-is for all subjects.
+        - If val is a list with one element: use that element for all subjects.
+        - If val is a list with n_subjects elements: use val[idx].
+        Matches MATLAB behaviour where a single string is shared across subjects.
+        """
+        if not isinstance(val, list):
+            return val
+        if len(val) == 1:
+            return val[0]
+        return val[idx]
+
+    # Resolve per-subject fields
+    folder_functional = _resolve(param['Folder_functional'], sidx)
+    folder_gm         = _resolve(param['Folder_GM'], sidx)
+    ta_func_prefix    = _resolve(param['TA_func_prefix'], sidx)
+    ta_gm_prefix      = _resolve(param['TA_gm_prefix'], sidx)
 
     # Construct full paths and verify they exist
     FPath = os.path.join(path, folder_functional)
@@ -67,7 +113,7 @@ def read_ta_data(path, sidx, param, fid=None):
     if not os.path.isdir(PPath):
         raise FileNotFoundError(f"GM map folder not found: {PPath}")
 
-    # ---- Read functional data ----
+    # ── Read functional data ──────────────────────────────────────────────────
 
     # List NIFTI files matching the functional prefix, sorted numerically
     func_files = sorted(
@@ -136,7 +182,7 @@ def read_ta_data(path, sidx, param, fid=None):
             write_information(fid, "No valid NIFTI or HDR/IMG functional files found.")
             raise FileNotFoundError("No valid NIFTI or HDR/IMG functional files found.")
 
-    # ---- Read probabilistic GM map ----
+    # ── Read probabilistic GM map ─────────────────────────────────────────────
 
     gm_files = sorted(
         [f for f in os.listdir(PPath)
@@ -174,5 +220,31 @@ def read_ta_data(path, sidx, param, fid=None):
     else:
         write_information(fid, "Multiple GM NIFTI files found with the same prefix.")
         raise ValueError("Multiple GM NIFTI files found with the same prefix.")
+
+    # ── Reslice GM map to functional resolution if needed ─────────────────────
+    # Matches MATLAB: if ~isequal(pHeader.dim, fHeader.dim) -> mapVTV(...)
+    # Uses scipy.ndimage.affine_transform (vectorised) instead of the
+    # voxel-by-voxel mapVTV loop for speed.
+    # The resliced map is saved to disk with an 'f' prefix (matching MATLAB's
+    # spm_write_vol call) so that subsequent runs find it directly and skip
+    # the reslicing step.
+    if pData.shape[:3] != fData.shape[:3]:
+        write_information(
+            fid,
+            'Different data dimensions for GM map and functional data: '
+            'converting GM map to functional resolution...'
+        )
+        pData = _reslice_to_functional(pData, pHeader, fHeader)
+
+        # Save resliced GM map with 'f' prefix so next run skips this step
+        resliced_fname = os.path.join(PPath, 'f' + gm_files[0])
+        nib.save(nib.Nifti1Image(pData, fHeader.affine), resliced_fname)
+        write_information(
+            fid,
+            f'Resliced GM map saved to: {resliced_fname}'
+        )
+
+        # Update pHeader to reflect the new resolution
+        pHeader = nib.load(resliced_fname)
 
     return fData, pData, fHeader, pHeader

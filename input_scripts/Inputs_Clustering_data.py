@@ -12,17 +12,17 @@ def setup_clustering_data_params():
     # General data information
     # ------------------------
     # path where data is stored
-    param["PathData"] = 'F:/iCAP/Data/Python/Ketamine/Khali'
+    param['PathData'] = 'C:/Users/scott/PycharmProjects/pythonProject/iCAPy/example data'
 
     # Links towards the data of all subjects to analyze
     # -------------------------------------------------
-    param["Subjects"] = ["run5_20130209", "run5_20130308", "run7_20130322"]
+    param['Subjects'] = ['sub-10159','sub-10171']
     param["n_subjects"] = len(param["Subjects"])
 
     # Title for this run (must match the title used for TA/thresholding)
     # This is for this specific run of the scripts and it from prior steps
     # to now build on that information
-    param["title"] = "test_spatial"
+    param["title"] = "pyexampleToolbox_openfMRI_MNI"
 
     # Thresholding-related information (used when selecting frames for iCAPs)
     # -----------------------------------------------------------------------

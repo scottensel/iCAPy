@@ -1,0 +1,81 @@
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Loading aggregated data and iCAPs...
+Soft assignment factor: 1
+Soft assignment factor: 1.2
+Soft assignment factor: 1.4
+Soft assignment factor: 1.6
+Soft assignment factor: 1.8
+Soft assignment factor: 2
+The BIC knee point is at xi=1.6
+The AIC knee point is at xi=1.6
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Loading aggregated data and iCAPs...
+Soft assignment factor: 1
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Loading aggregated data and iCAPs...
+Soft assignment factor: 1
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Loading aggregated data and iCAPs...
+Soft assignment factor: 1
+Soft assignment factor: 1.2
+Soft assignment factor: 1.4
+Soft assignment factor: 1.6
+Soft assignment factor: 1.8
+Soft assignment factor: 2
+The BIC knee point is at xi=1.6
+The AIC knee point is at xi=1.6
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+The BIC knee point is at xi=1.6
+The AIC knee point is at xi=1.6
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Loading aggregated data and iCAPs...
+Soft assignment factor: 1
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Loading aggregated data and iCAPs...
+Soft assignment factor: 1
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Loading aggregated data and iCAPs...
+Soft assignment factor: 1
+Soft assignment factor: 1.2
+Soft assignment factor: 1.4
+Soft assignment factor: 1.6
+Soft assignment factor: 1.8
+Soft assignment factor: 2
+The BIC knee point is at xi=1.6
+The AIC knee point is at xi=1.6
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the clustering process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Loading aggregated data and iCAPs...
+Soft assignment factor: 1
+Starting the total activation/iCAPs tools for project entitled exampleToolbox_openfMRI_MNI
+Entering the time course retrieval process...
+K = 20, iCAPs title: K_20_Dist_cosine_Folds_10
+Loading aggregated data and iCAPs...
+Soft assignment factor: 1
+Soft assignment factor: 1.2
+Soft assignment factor: 1.4
+Soft assignment factor: 1.6
+Soft assignment factor: 1.8
+Soft assignment factor: 2
+The BIC knee point is at xi=1.6
+The AIC knee point is at xi=1.6

@@ -17,7 +17,6 @@ import time
 import os
 import pickle
 import copy
-import h5py
 
 # This function runs total activation, according to the
 # parameters specified by the user
@@ -157,9 +156,14 @@ def run_ta(param):
                     #  only the brain information
                     param['mask'], param['mask_3D'] = create_ta_mask(param, fid)
                     write_information(fid, f'Saving fMRI 4D input (fData)...')
+                    save4dnii(results_path, 'inputData', 'mask',
+                              param['mask_3D'].astype(np.float32)[:, :, :, np.newaxis],
+                              param['fHeader'].fname,
+                              None,
+                              param['Dimension'][:3])
                     save4dnii(results_path, 'inputData', 'fData', fData, param['fHeader'].fname, param['mask'], param['Dimension'])
 
-                    # Create 2D time-course data
+                    # Create 2D time-course data4
                     TC, param = create_ta_data(fData, param, fid)
                     write_information(fid, f'Saving fMRI 2D input (TC)...')
                     save4dnii(results_path, 'inputData', 'TC1', TC, param['fHeader'].fname, param['mask'], param['Dimension'])
@@ -175,7 +179,7 @@ def run_ta(param):
 
                     # Detrending (if enabled)
                     #######################################
-                    if param.get('doDetrend', False):
+                    if param.get('doDetrend', False) or param.get('doNormalize', False):
                         TC = detrend_time_courses(TC, param, fid)
 
                     # Convert param['Dimension'] to a list to allow modification
@@ -215,10 +219,6 @@ def run_ta(param):
                         activity_related, param = run_total_activation(TC.T, param, fid)
                         elapsed_time = time.perf_counter() - start_time
                         write_information(fid, f'It took {elapsed_time:.2f} seconds to run total activation on real data...')
-
-
-
-
 
                         innovation, activity_inducing = generate_innovations(activity_related, param)
 

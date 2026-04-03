@@ -145,6 +145,7 @@ def run_thresholding(param):
             ) as f:
                 innovation_surrogate = pickle.load(f)
 
+
             # Copy TA fields into current param
             param["fHeader"] = param_ta["fHeader"]
             param["mask"] = param_ta["mask"]

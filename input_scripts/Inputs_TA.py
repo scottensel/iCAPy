@@ -12,7 +12,7 @@ def setup_ta_params():
 
     # ── Force flags ──────────────────────────────────────────────────────────
     param['force_TA_on_real'] = 1
-    param['force_TA_on_surrogate'] = 1
+    param['force_TA_on_surrogate'] = 0
 
     # ── Parallelism / acceleration flags ─────────────────────────────────────
 
@@ -46,7 +46,6 @@ def setup_ta_params():
     # Chunking along T processes a subset of time points at a time.
     #
     # Start with a value around 120 if you have an 8 GB GPU.
-    # Verified: chunk_size=120 uses ~7.6 GB on an 8 GB GPU.
     # If you get an OutOfMemoryError, reduce by 20 until it works.
     # If you have more VRAM, increase for fewer GPU transfers and faster runs.
     # Set to None only if GPU has A LOT OF VRAM (e.g. A100 80 GB).
@@ -78,7 +77,7 @@ def setup_ta_params():
 
     # Type of assumed hemodynamic response function
     # Options: 'bold', 'spmhrf', 'mion'
-    param['HRF'] = 'mion'
+    param['HRF'] = 'bold'
 
     # Number of outer iterations for the forward-backward scheme
     param['Nit'] = 5

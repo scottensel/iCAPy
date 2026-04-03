@@ -32,7 +32,7 @@ def setup_clustering_params():
     param["extra_mask_file"] = "GM_mask_MNI333_AAL.nii"
 
     # Number of iCAPs K
-    param["K"] = [x for x in range(2, 5)]
+    param["K"] = [x for x in range(19, 22)]
 
     if 0 in param["K"]:
         raise ValueError("The list of K contains 0")

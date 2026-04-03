@@ -18,14 +18,16 @@ def assess_motion(path, soi, param, fid=None):
             'Folder_motion'           - name of the folder containing the
                                         motion file; None / [] if directly
                                         in path; can be a list (one per
-                                        subject)
+                                        subject) or a single string shared
+                                        across all subjects
             'TA_mot_prefix'           - prefix of the motion text file to
-                                        read; can be a list (one per subject)
+                                        read; can be a list or single string
             'skipped_scans'           - number of scans to skip at the
                                         beginning due to T1 equilibration
             ['skipped_scans_motionfile'] - number of lines to skip at the
                                         start of the motion file; defaults
-                                        to 'skipped_scans' if not set
+                                        to 'skipped_scans' if not set or
+                                        None
             'FD_method'               - scrubbing method; only 'Power' is
                                         currently implemented
             'FD_threshold'            - float, FD threshold in mm; frames
@@ -42,27 +44,38 @@ def assess_motion(path, soi, param, fid=None):
         functional connectivity MRI networks arise from subject motion.
         NeuroImage 59, 2142-2154.
     """
-    # Resolve per-subject fields — use subject-specific entry if a list
-    # is provided, otherwise use the single shared value
-    param['Folder_motion'] = (param['Folder_motion'][soi]
-                              if isinstance(param['Folder_motion'], list)
-                              else param['Folder_motion'])
-    param['TA_mot_prefix'] = (param['TA_mot_prefix'][soi]
-                              if isinstance(param['TA_mot_prefix'], list)
-                              else param['TA_mot_prefix'])
+    def _resolve(val, idx):
+        """
+        Returns the subject-specific value from val.
+        - If val is not a list: use it as-is for all subjects.
+        - If val is a list with one element: use that element for all subjects.
+        - If val is a list with n_subjects elements: use val[idx].
+        Matches MATLAB behaviour where a single string is shared across subjects.
+        """
+        if not isinstance(val, list):
+            return val
+        if len(val) == 1:
+            return val[0]
+        return val[idx]
 
-    # If skipped_scans_motionfile is not set, default to skipped_scans
-    param.setdefault('skipped_scans_motionfile', param['skipped_scans'])
+    folder_motion  = _resolve(param['Folder_motion'], soi)
+    ta_mot_prefix  = _resolve(param['TA_mot_prefix'], soi)
+
+    # If skipped_scans_motionfile is not set or is None, default to skipped_scans
+    n_skip = param.get('skipped_scans_motionfile')
+    if not n_skip:
+        n_skip = param['skipped_scans']
+    n_skip = int(n_skip)
 
     # Check that the motion folder exists
-    motion_folder = os.path.join(path, param['Folder_motion'])
+    motion_folder = os.path.join(path, folder_motion)
     if not os.path.isdir(motion_folder):
         raise FileNotFoundError("There is no motion folder...")
 
     # Locate and read the motion file (must be exactly one matching .txt file)
     motion_file = next(
         (f for f in os.listdir(motion_folder)
-         if f.startswith(param['TA_mot_prefix']) and f.endswith('.txt')),
+         if f.startswith(ta_mot_prefix) and f.endswith('.txt')),
         None
     )
     if not motion_file:
@@ -71,8 +84,8 @@ def assess_motion(path, soi, param, fid=None):
     RP = np.loadtxt(os.path.join(motion_folder, motion_file))
 
     # Remove the first scans (T1 equilibration frames)
-    if int(param['skipped_scans_motionfile']) > 0:
-        RP = RP[int(param['skipped_scans_motionfile']):]
+    if n_skip > 0:
+        RP = RP[n_skip:]
 
     # Convert rotational displacement values from radians to degrees
     # (SPM outputs rotations in radians; MATLAB multiplies by 180/pi)
@@ -94,7 +107,7 @@ def assess_motion(path, soi, param, fid=None):
         FD_Power = np.sum(np.abs(RPDiff), axis=1)
 
         # Average and percentage of scrubbed frames (for logging)
-        MeanFD_Power    = float(FD_Power.mean())
+        MeanFD_Power = float(FD_Power.mean())
         PercentFD_Power = float(np.sum(FD_Power > param['FD_threshold']) /
                                 len(FD_Power) * 100.0)
 
