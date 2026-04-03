@@ -22,7 +22,7 @@ def setup_clustering_data_params():
     # Title for this run (must match the title used for TA/thresholding)
     # This is for this specific run of the scripts and it from prior steps
     # to now build on that information
-    param["title"] = "test3"
+    param["title"] = "test_spatial"
 
     # Thresholding-related information (used when selecting frames for iCAPs)
     # -----------------------------------------------------------------------

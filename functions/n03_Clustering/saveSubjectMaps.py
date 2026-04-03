@@ -1,7 +1,7 @@
 import os
 import numpy as np
-from functions.Utilities.save4Dnii import save4dnii
-from .ZScore_iCAPs import zscore_icaps
+from functions.n00_Utilities.save4Dnii import save4dnii
+from functions.n03_Clustering.ZScore_iCAPs import zscore_icaps
 
 
 def save_subject_maps(param, subject_labels, IDX, I_sig, final_mask):

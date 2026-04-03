@@ -28,6 +28,6 @@ def setup_thresholding_data_params():
 
     # Title that we wish to give to this specific run of the scripts for saving data,
     # or that was used previously for first steps and that we wish to build on now
-    param["title"] = "test3"
+    param["title"] = "test_spatial"
 
     return param

@@ -19,11 +19,11 @@ def setup_clustering_params():
     # iCAPs-related information
     # -------------------------------------------------------
     # specify if clustering should be done (set to 0 to only run consensus)
-    param["doClustering"] = 1
+    param["doClustering"] = 0
 
     # force recomputation even if outputs already exist
-    param["force_Aggregating"] = 1
-    param["force_Clustering"] = 1
+    param["force_Aggregating"] = 0
+    param["force_Clustering"] = 0
 
     # external mask defining input voxels (if None, intersection of all GMs)
     param["common_mask_file"] = None
@@ -32,7 +32,7 @@ def setup_clustering_params():
     param["extra_mask_file"] = "GM_mask_MNI333_AAL.nii"
 
     # Number of iCAPs K
-    param["K"] = [x for x in range(2, 6)]
+    param["K"] = [x for x in range(2, 5)]
 
     if 0 in param["K"]:
         raise ValueError("The list of K contains 0")

@@ -24,12 +24,7 @@ def setup_data_params():
 
     # Title for this analysis session
     # this will be the title used in later steps of the iCAP pipeline
-    param['title'] = 'test'
-
-    # run temporal regularization using parrlell process of CPU cores
-    # I HIGHLY RECCOMEND setting equal to 1 as this is a substantial speed up
-    # however it will use 100% of your CPU
-    param['runParallel'] = 1
+    param['title'] = 'test_spatial3'
 
     # Information about the folders where to retrieve functional and strcutural data
     #############################################################################

@@ -27,7 +27,7 @@ def setup_timecourses_data_params():
     # Title that we wish to give to this specific run of the scripts for saving
     # data, or that was used previously for first steps and that we wish to
     # build on now
-    param["title"] = "test3"
+    param["title"] = "test_spatial"
 
     # name of the iCAPs output for this data
     # if only a subset of subjects should be included in the clustering, this

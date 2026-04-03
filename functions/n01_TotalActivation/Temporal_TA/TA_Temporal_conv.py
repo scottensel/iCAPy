@@ -1,6 +1,5 @@
 import numpy as np
 from functions.n01_TotalActivation.Temporal_TA.TA_Temporal_OneTimeCourse import ta_temporal_onetimecourse
-from tqdm import tqdm
 
 
 def ta_temporal(TCN, param):
@@ -48,7 +47,7 @@ def ta_temporal(TCN, param):
     g = np.array([0, -0.12941, -0.22414, 0.83652, -0.48296])
 
     # We iterate through all voxels to solve the problem
-    for i in tqdm(range(param['NbrVoxels']), desc="Processing temporal step", ncols=80):
+    for i in range(param['NbrVoxels']):
 
         # Initialisation of the regularization parameter for the
         # considered voxel, in two steps:

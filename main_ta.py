@@ -60,6 +60,8 @@ from functions.Run_TA import run_ta
 # Mar 2026, Scott Ensel
 # - Converted entire library to Python iCAP(y)
 ###############################################################################
+
+
 def main():
 
     # Initialize parameters by combining both input setups
@@ -69,6 +71,7 @@ def main():
 
     # Run Total Activation (TA) with the configured parameters
     run_ta(param)
+
 
 if __name__ == "__main__":
     main()
