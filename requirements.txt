@@ -1,0 +1,14 @@
+numpy
+scipy
+nibabel
+scikit-learn
+matplotlib
+h5py
+
+# ── Optional: GPU acceleration ────────────────────────────────────────────────
+# Uncomment the line matching your CUDA version (check with: nvcc --version)
+# cupy-cuda11x
+# cupy-cuda12x
+
+# ── Optional: Numba JIT acceleration ─────────────────────────────────────────
+# numba

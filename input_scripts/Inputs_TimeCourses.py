@@ -20,11 +20,11 @@ def setup_timecourses_params():
     # parameter for soft cluster assignment in transient-informed regression
     # MATLAB: param.softClusterThres = [1:0.2:2];
     # That is: 1, 1.2, ..., 2.0
-    param["softClusterThres"] = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+    param["softClusterThres"] = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
 
 
     # Evaluate amplitude correlations as part of soft cluster factor evaluation
-    param["evalAmplitudeCorrs"] = 1
+    param["evalAmplitudeCorrs"] = 0
 
     # Threshold above which a z-scored iCAP time course is considered "active"
     param["activityThres"] = 1.0

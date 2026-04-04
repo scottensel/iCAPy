@@ -11,7 +11,7 @@ def setup_data_params():
 
     # Path to datas C:\Users\scott\PycharmProjects\pythonProject\iCAPy\example data
     # param['PathData'] = 'F:/iCAP/Data/Python/Ketamine/Khali'
-    param['PathData'] = 'C:/Users/scott/PycharmProjects/pythonProject/iCAPy/example data'
+    param['PathData'] = 'example data'
 
     # TR of the data
     param['TR'] = 2

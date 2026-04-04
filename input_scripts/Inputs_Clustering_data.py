@@ -12,7 +12,7 @@ def setup_clustering_data_params():
     # General data information
     # ------------------------
     # path where data is stored
-    param['PathData'] = 'C:/Users/scott/PycharmProjects/pythonProject/iCAPy/example data'
+    param['PathData'] = 'example data'
 
     # Links towards the data of all subjects to analyze
     # -------------------------------------------------

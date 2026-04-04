@@ -77,22 +77,39 @@ def build_mni_affine(bb, vox):
 
 
 def apply_deformation(source_img, deform_img, out_affine, out_shape,
-                      interpolation_order=4):
+                      interpolation_order=1):
     """
     Warps source_img into MNI space using an SPM y_* deformation field.
 
-    SPM y_* fields store absolute world-space MNI coordinates (mm) at each
-    source voxel. This function applies a pull warp: for each output MNI
-    voxel, it computes the corresponding source voxel coordinate via the
-    inverse source affine, then resamples using map_coordinates.
+    SPM y_* fields are defined in structural space and store absolute
+    world-space MNI coordinates (mm) at each structural voxel —
+    i.e. deform[x,y,z] = [mx, my, mz] tells you where structural voxel
+    (x,y,z) maps to in MNI world space.
+
+    The source image (functional) may have different dimensions from the
+    deformation field (structural). The correct approach is:
+        1. For each output MNI voxel, find its world-space mm position.
+        2. Use the inverse deformation (structural -> MNI is known, so we
+           interpolate the deformation field to get the structural voxel
+           that maps nearest to our desired MNI position).
+
+    Practical pull-warp approach:
+        1. Convert each output MNI voxel to world mm via out_affine.
+        2. Convert those world mm to structural voxel coords via
+           inv(deform_affine) — this gives approximate structural coords.
+        3. Interpolate the deformation field at those structural coords to
+           get the actual MNI world position each structural voxel maps to.
+        4. Convert structural voxel coords to functional voxel coords via
+           inv(source_affine) @ deform_affine.
+        5. Resample the source data at those functional coords.
 
     Inputs:
-        source_img          - nibabel image in subject space
+        source_img          - nibabel image in subject functional space
         deform_img          - nibabel y_* deformation field (X,Y,Z,1,3)
+                              defined in structural space
         out_affine          - (4x4) affine for MNI output grid
         out_shape           - (3,) shape of MNI output grid
-        interpolation_order - scipy map_coordinates order (4=cubic spline,
-                              1=linear, 0=nearest neighbour)
+        interpolation_order - map_coordinates order (1=linear, 0=nearest)
 
     Outputs:
         out_data - ndarray of shape (*out_shape) or (*out_shape, T)
@@ -104,7 +121,12 @@ def apply_deformation(source_img, deform_img, out_affine, out_shape,
     n_vols = source_data.shape[3] if is_4d else 1
     src_shape = source_data.shape[:3]
 
-    # Build output grid in MNI voxel space and convert to world mm
+    # Load deformation field — squeeze (X,Y,Z,1,3) -> (X,Y,Z,3)
+    deform_data = np.squeeze(np.asarray(deform_img.dataobj, dtype=np.float64))
+    deform_affine = deform_img.affine
+    deform_shape = deform_data.shape[:3]
+
+    # Build output MNI grid: for each output voxel compute world mm position
     ox, oy, oz = np.meshgrid(
         np.arange(out_shape[0]),
         np.arange(out_shape[1]),
@@ -112,20 +134,45 @@ def apply_deformation(source_img, deform_img, out_affine, out_shape,
         indexing='ij'
     )
     out_vox_flat = np.column_stack([ox.ravel(), oy.ravel(), oz.ravel()])
-    ones_out = np.ones((out_vox_flat.shape[0], 1))
-    out_world = (out_affine @ np.hstack([out_vox_flat, ones_out]).T)[:3].T
+    ones = np.ones((out_vox_flat.shape[0], 1))
+    out_world = (out_affine @ np.hstack([out_vox_flat, ones]).T)[:3].T  # (N_out, 3)
 
-    # Convert output world mm -> source voxel coordinates
+    # Convert output MNI world mm -> structural voxel coords
+    # (approximate — deformation field lives in structural space)
+    inv_deform_affine = np.linalg.inv(deform_affine)
+    struct_vox = (inv_deform_affine @ np.hstack([out_world, ones]).T)[:3].T  # (N_out, 3)
+
+    # Clip structural coords to deformation field bounds
+    struct_coords = np.clip(
+        struct_vox.T,
+        [[0], [0], [0]],
+        [[deform_shape[0] - 1], [deform_shape[1] - 1], [deform_shape[2] - 1]]
+    )
+
+    # Interpolate the deformation field at these structural positions
+    # to get the MNI world coordinates each structural location maps to
+    mni_world_interp = np.zeros((3, out_vox_flat.shape[0]))
+    for dim in range(3):
+        mni_world_interp[dim] = map_coordinates(
+            deform_data[:, :, :, dim],
+            struct_coords,
+            order=1,
+            mode='nearest'
+        )
+    mni_world_interp = mni_world_interp.T  # (N_out, 3)
+
+    # Convert interpolated MNI world mm -> functional source voxel coords
     inv_src_affine = np.linalg.inv(source_affine)
-    src_vox_flat = (inv_src_affine @ np.hstack([out_world, ones_out]).T)[:3].T
+    src_vox = (inv_src_affine @ np.hstack([mni_world_interp, ones]).T)[:3]  # (3, N_out)
 
-    # Clip to source volume bounds for map_coordinates
+    # Clip to functional source bounds
     src_coords = np.clip(
-        src_vox_flat.T,
+        src_vox,
         [[0], [0], [0]],
         [[src_shape[0] - 1], [src_shape[1] - 1], [src_shape[2] - 1]]
     )
 
+    # Resample source data at computed functional voxel coordinates
     if is_4d:
         out_data = np.zeros((*out_shape, n_vols), dtype=np.float32)
         for t in range(n_vols):
@@ -205,12 +252,12 @@ def main():
         warp_and_save(
             os.path.join(thres_path, 'SignInnov.nii'), deform_path,
             os.path.join(out_thres, 'SignInnov.nii'),
-            out_affine, out_shape, interp_order=4
+            out_affine, out_shape, interp_order=1
         )
         warp_and_save(
             os.path.join(ta_path, 'Activity_inducing.nii'), deform_path,
             os.path.join(out_ta, 'Activity_inducing.nii'),
-            out_affine, out_shape, interp_order=4
+            out_affine, out_shape, interp_order=1
         )
         warp_and_save(
             os.path.join(input_path, 'mask.nii'), deform_path,

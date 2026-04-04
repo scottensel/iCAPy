@@ -14,7 +14,7 @@ def setup_thresholding_data_params():
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     # Path where we have our data stored
-    param['PathData'] = 'C:/Users/scott/PycharmProjects/pythonProject/iCAPy/example data'
+    param['PathData'] = 'example data'
 
     # Links towards the data of all subjects to analyze
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

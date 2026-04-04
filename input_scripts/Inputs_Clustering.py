@@ -19,11 +19,11 @@ def setup_clustering_params():
     # iCAPs-related information
     # -------------------------------------------------------
     # specify if clustering should be done (set to 0 to only run consensus)
-    param["doClustering"] = 0
+    param["doClustering"] = 1
 
     # force recomputation even if outputs already exist
-    param["force_Aggregating"] = 0
-    param["force_Clustering"] = 0
+    param["force_Aggregating"] = 1
+    param["force_Clustering"] = 1
 
     # external mask defining input voxels (if None, intersection of all GMs)
     param["common_mask_file"] = None
