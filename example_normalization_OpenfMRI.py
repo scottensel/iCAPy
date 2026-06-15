@@ -26,11 +26,11 @@ Outputs (written to TA_results/<title>_MNI/ for each subject):
     Thresholding/<thresh_title>/SignInnov.nii          - warped to MNI
     Thresholding/<thresh_title>/mask_nonan.nii         - warped to MNI
     Thresholding/<thresh_title>/param.pkl              - updated for MNI space
-    Thresholding/<thresh_title>/SignInnov.pkl           - 2D matrix in MNI space
+    Thresholding/<thresh_title>/SignInnov.pkl          - 2D matrix in MNI space
     TotalActivation/Activity_inducing.nii              - warped to MNI
     TotalActivation/mask.nii                           - warped to MNI
     TotalActivation/param.pkl                          - updated for MNI space
-    TotalActivation/Activity_inducing.pkl               - 2D matrix in MNI space
+    TotalActivation/Activity_inducing.pkl              - 2D matrix in MNI space
 """
 
 import os
