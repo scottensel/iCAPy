@@ -141,7 +141,7 @@ def run_thresholding(param):
 
             # Surrogate innovations
             with open(
-                os.path.join(results_path, "Surrogate", "innovation_surrogate.pkl"), "rb"
+                os.path.join(results_path, "Surrogate", "Innovation_surrogate.pkl"), "rb"
             ) as f:
                 innovation_surrogate = pickle.load(f)
 
